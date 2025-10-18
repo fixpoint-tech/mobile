@@ -1,50 +1,42 @@
 import 'package:flutter/material.dart';
+import '../../features/auth/view/login_page.dart';
+import '../../features/tickets/view/ticket_list_page.dart';
+import '../../features/home/view/home_page.dart';
 
 class RouteNames {
   static const String home = '/';
   static const String login = '/login';
-  // Add more route names here...
+  static const String tickets = '/tickets';
 }
 
 class AppRouter {
   static final Map<String, WidgetBuilder> routes = {
-    RouteNames.home: (context) => const HomeScreen(),
-    RouteNames.login: (context) => const LoginScreen(),
-    // Add more routes here...
+    RouteNames.home: (context) => const HomePage(),
+    RouteNames.login: (context) => const LoginPage(),
+    RouteNames.tickets: (context) => const TicketListPage(),
   };
 
   /// Handles undefined routes.
   static Route<dynamic> onUnknownRoute(RouteSettings settings) {
     return MaterialPageRoute(builder: (context) => const UnknownRouteScreen());
   }
-}
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
+    final builder = routes[settings.name];
+    if (builder != null) {
+      return MaterialPageRoute(builder: builder, settings: settings);
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
-      body: const Center(child: Text('Home Screen')),
-    );
-  }
-}
-
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: const Center(child: Text('Login Screen')),
+    // Fallback to home instead of showing 404 so app always boots to Home.
+    return MaterialPageRoute(
+      builder: (context) => const HomePage(),
+      settings: settings,
     );
   }
 }
 
 class UnknownRouteScreen extends StatelessWidget {
-  const UnknownRouteScreen({Key? key}) : super(key: key);
+  const UnknownRouteScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

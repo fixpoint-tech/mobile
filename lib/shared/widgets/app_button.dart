@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 
 const kPrimaryColor = Color(0xFF50B6DC);
@@ -30,16 +31,20 @@ class PrimaryButton extends StatelessWidget {
       style: ButtonStyle(
         backgroundColor: MaterialStateProperty.resolveWith((states) {
           if (states.contains(MaterialState.disabled)) {
-            return kPrimaryColor.withOpacity(0.50);
+            return kPrimaryColor.withAlpha((0.50 * 255).round());
           }
           if (states.contains(MaterialState.pressed)) {
-            return kPrimaryColor.withOpacity(0.90);
+            return kPrimaryColor.withAlpha((0.90 * 255).round());
           }
           return kPrimaryColor;
         }),
         foregroundColor: MaterialStateProperty.all(Colors.white),
-        overlayColor: MaterialStateProperty.all(Colors.white.withOpacity(0.06)),
-        shadowColor: MaterialStateProperty.all(kPrimaryColor.withOpacity(0.12)),
+        overlayColor: MaterialStateProperty.all(
+          Colors.white.withAlpha((0.06 * 255).round()),
+        ),
+        shadowColor: MaterialStateProperty.all(
+          kPrimaryColor.withAlpha((0.12 * 255).round()),
+        ),
         elevation: MaterialStateProperty.all(2),
         shape: MaterialStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
