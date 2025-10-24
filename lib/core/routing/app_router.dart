@@ -9,7 +9,7 @@ class RouteNames {
   static const String login = '/login';
   static const String tickets = '/tickets';
 
-  // Network list tab routes (handled by NetworkTabsPage)
+  // ✅ Added new route names for list pages
   static const String gdms = '/gdms';
   static const String gpms = '/gpms';
   static const String outlets = '/outlets';
@@ -22,16 +22,16 @@ class AppRouter {
     RouteNames.login: (context) => const LoginPage(),
     RouteNames.tickets: (context) => const TicketListPage(),
 
-    // Each route renders the same tabbed page with a different initial index
+    // ✅ Added new routes for the tabbed list pages
     RouteNames.gdms: (context) => const NetworkTabsPage(initialIndex: 0),
     RouteNames.gpms: (context) => const NetworkTabsPage(initialIndex: 1),
     RouteNames.outlets: (context) => const NetworkTabsPage(initialIndex: 2),
     RouteNames.mes: (context) => const NetworkTabsPage(initialIndex: 3),
   };
 
-  // Handles undefined routes
+  /// Handles undefined routes.
   static Route<dynamic> onUnknownRoute(RouteSettings settings) {
-    return MaterialPageRoute(builder: (_) => const UnknownRouteScreen());
+    return MaterialPageRoute(builder: (context) => const UnknownRouteScreen());
   }
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
@@ -42,7 +42,7 @@ class AppRouter {
 
     // Fallback to home instead of showing 404 so app always boots to Home.
     return MaterialPageRoute(
-      builder: (_) => const HomePage(),
+      builder: (context) => const HomePage(),
       settings: settings,
     );
   }
