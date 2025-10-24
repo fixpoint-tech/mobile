@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import '../../features/auth/view/login_page.dart';
 import '../../features/tickets/view/ticket_list_page.dart';
 import '../../features/home/view/home_page.dart';
+import '../../features/list_pages/views/network_tabs_page.dart';
 
 class RouteNames {
   static const String home = '/';
   static const String login = '/login';
   static const String tickets = '/tickets';
+
+  // ✅ Added new route names for list pages
+  static const String gdms = '/gdms';
+  static const String gpms = '/gpms';
+  static const String outlets = '/outlets';
+  static const String mes = '/mes';
 }
 
 class AppRouter {
@@ -14,6 +21,12 @@ class AppRouter {
     RouteNames.home: (context) => const HomePage(),
     RouteNames.login: (context) => const LoginPage(),
     RouteNames.tickets: (context) => const TicketListPage(),
+
+    // ✅ Added new routes for the tabbed list pages
+    RouteNames.gdms: (context) => const NetworkTabsPage(initialIndex: 0),
+    RouteNames.gpms: (context) => const NetworkTabsPage(initialIndex: 1),
+    RouteNames.outlets: (context) => const NetworkTabsPage(initialIndex: 2),
+    RouteNames.mes: (context) => const NetworkTabsPage(initialIndex: 3),
   };
 
   /// Handles undefined routes.
@@ -46,3 +59,4 @@ class UnknownRouteScreen extends StatelessWidget {
     );
   }
 }
+

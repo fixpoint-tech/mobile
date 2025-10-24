@@ -57,6 +57,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+    # ✅ Added assets block (only this addition)
+  assets:
+    - lib/features/list_pages/widgets/dominoz-logo.png
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
