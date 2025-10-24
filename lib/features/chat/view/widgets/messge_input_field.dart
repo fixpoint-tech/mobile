@@ -93,11 +93,15 @@ class _MessageInputFieldState extends State<MessageInputField> {
                       if (!hasActions) return;
                       setState(() => showActions = !showActions);
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Icon(
-                        hasActions && showActions ? Icons.close : Icons.add,
-                        color: Colors.white,
+                    child: SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Center(
+                        child: Icon(
+                          hasActions && showActions ? Icons.close : Icons.add,
+                          color: Colors.white,
+                          size: 24, // match send icon size
+                        ),
                       ),
                     ),
                   ),
