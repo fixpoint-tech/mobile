@@ -27,6 +27,12 @@ class HomePage extends StatelessWidget {
               onPressed: () => Navigator.pushNamed(context, '/tickets'),
               width: 160,
             ),
+            const SizedBox(height: 16),
+            PrimaryButton(
+              label: 'Go to Chat',
+              onPressed: () => Navigator.pushNamed(context, '/chat'),
+              width: 160,
+            ),
           ],
         ),
       ),

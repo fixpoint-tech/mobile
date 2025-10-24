@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../features/auth/view/login_page.dart';
 import '../../features/tickets/view/ticket_list_page.dart';
 import '../../features/home/view/home_page.dart';
+import '../../features/chat/view/pages/chat_box.dart';
 
 class RouteNames {
   static const String home = '/';
   static const String login = '/login';
   static const String tickets = '/tickets';
+  static const String chat = '/chat';
 }
 
 class AppRouter {
@@ -14,6 +16,7 @@ class AppRouter {
     RouteNames.home: (context) => const HomePage(),
     RouteNames.login: (context) => const LoginPage(),
     RouteNames.tickets: (context) => const TicketListPage(),
+    RouteNames.chat: (context) => const ChatPage(),
   };
 
   /// Handles undefined routes.
