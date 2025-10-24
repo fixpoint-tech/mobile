@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/routing/app_router.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,10 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Community Project',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(context),
       initialRoute: RouteNames.home,
       routes: AppRouter.routes,
       onGenerateRoute: AppRouter.onGenerateRoute,
