@@ -99,7 +99,9 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                           const SizedBox(width: 12),
                           Text(
                             _selectedDate != null
-                                ? DateFormat('MMMM dd, yyyy\nhh:mm a').format(_selectedDate!)
+                                ? DateFormat(
+                                    'MMMM dd, yyyy\nhh:mm a',
+                                  ).format(_selectedDate!)
                                 : 'September 29, 2025\n09:00 AM',
                             style: const TextStyle(
                               color: Colors.black87,
@@ -170,7 +172,10 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       elevation: 0,
                     ),
                   ),
@@ -193,7 +198,10 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       elevation: 0,
                     ),
                   ),
@@ -214,7 +222,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -233,10 +241,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
               ),
               child: const Text(
                 'Submit',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -259,7 +264,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
 
   Widget _buildIssueTypeButton(String type) {
     final isSelected = _selectedIssueType == type;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -269,8 +274,8 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? const Color(0xFF4FC3F7) 
+          color: isSelected
+              ? const Color(0xFF4FC3F7)
               : Colors.grey[300], // Ash color for unselected
           borderRadius: BorderRadius.circular(8),
         ),
@@ -298,12 +303,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         children: [
           const Icon(Icons.insert_drive_file, size: 16, color: Colors.grey),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              fileName,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
+          Expanded(child: Text(fileName, style: const TextStyle(fontSize: 12))),
           GestureDetector(
             onTap: () {
               setState(() {
@@ -329,10 +329,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         children: [
           const Icon(Icons.person, size: 16, color: Colors.grey),
           const SizedBox(width: 8),
-          Text(
-            name,
-            style: const TextStyle(fontSize: 12),
-          ),
+          Text(name, style: const TextStyle(fontSize: 12)),
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
@@ -354,12 +351,12 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       final TimeOfDay? time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
-      if (time != null) {
+      if (time != null && mounted) {
         setState(() {
           _selectedDate = DateTime(
             picked.year,
@@ -386,15 +383,10 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFFFCE4EC), // Light pink background
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text(
           'Select Maintenance Executive',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -432,7 +424,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         _showErrorDialog('Please enter a task name');
         return;
       }
-      
+
       if (_descriptionController.text.trim().isEmpty) {
         _showErrorDialog('Please enter a description');
         return;
@@ -448,14 +440,16 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         title: _taskNameController.text.trim(),
         description: _descriptionController.text.trim(),
         status: IssueStatus.open,
-        maintenanceExecutiveId: _selectedExecutive != null ? 1 : null, // TODO: Map executive name to ID
+        maintenanceExecutiveId: _selectedExecutive != null
+            ? 1
+            : null, // TODO: Map executive name to ID
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
       // Add issue to controller
       await _issueController.createIssue(newIssue);
-      
+
       // Show success message and go back to home page
       if (mounted) {
         // Show success snackbar with custom styling
@@ -495,7 +489,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
             elevation: 0,
           ),
         );
-        
+
         // Go back to home page after a brief delay
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
@@ -512,7 +506,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         _selectedExecutive = null;
         _uploadedFiles.clear();
       });
-      
+
       // Show error message with custom styling
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -541,7 +535,8 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                 ),
               ],
             ),
-            backgroundColor: AppColors.accentLight, // Light pink background (#FFE4F2)
+            backgroundColor:
+                AppColors.accentLight, // Light pink background (#FFE4F2)
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -607,7 +602,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         color: const Color(0xFFE3F2FD),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -621,15 +616,12 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF4FC3F7),
-                Color(0xFF29B6F6),
-              ],
+              colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
             ),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                color: const Color(0xFF4FC3F7).withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),

@@ -40,19 +40,23 @@ class CustomBottomNavigation extends StatelessWidget {
                       end: Alignment.bottomRight,
                       colors: [
                         AppColors.primary,
-                        AppColors.primary.withOpacity(0.8),
+                        AppColors.primary.withValues(alpha: 0.8),
                       ],
                     ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.add, color: AppColors.white, size: 22),
+                  child: const Icon(
+                    Icons.add,
+                    color: AppColors.white,
+                    size: 22,
+                  ),
                 ),
               ),
             )

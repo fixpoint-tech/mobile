@@ -27,6 +27,12 @@ class HomePage extends StatelessWidget {
               onPressed: () => Navigator.pushNamed(context, '/tickets'),
               width: 160,
             ),
+            const SizedBox(height: 16),
+            SecondaryButton(
+              label: 'View Profile',
+              onPressed: () => Navigator.pushNamed(context, '/profile'),
+              width: 160,
+            ),
           ],
         ),
       ),
