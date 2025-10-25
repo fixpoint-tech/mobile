@@ -7,6 +7,8 @@ import '../../features/profile/view/edit_profile_page.dart';
 import '../../features/profile/data/user_repository.dart';
 import '../../core/models/app_user.dart';
 import '../../features/list_pages/views/network_tabs_page.dart';
+import '../../features/profile/view/about_page.dart';
+import '../../features/profile/view/help_support_page.dart';
 
 class RouteNames {
   static const String home = '/';
@@ -14,6 +16,8 @@ class RouteNames {
   static const String tickets = '/tickets';
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
+  static const String about = '/about';
+  static const String helpSupport = '/help';
 
   // ✅ Added new route names for list pages
   static const String gdms = '/gdms';
@@ -55,6 +59,12 @@ class AppRouter {
     RouteNames.gpms: (context) => const NetworkTabsPage(initialIndex: 1),
     RouteNames.outlets: (context) => const NetworkTabsPage(initialIndex: 2),
     RouteNames.mes: (context) => const NetworkTabsPage(initialIndex: 3),
+
+    // About page
+    RouteNames.about: (context) => const AboutPage(),
+
+    // Help & Support page
+    RouteNames.helpSupport: (context) => const HelpSupportPage(),
   };
 
   /// Handles undefined routes.
@@ -87,4 +97,3 @@ class UnknownRouteScreen extends StatelessWidget {
     );
   }
 }
-

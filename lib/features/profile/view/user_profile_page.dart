@@ -68,7 +68,7 @@ class UserProfilePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     blurRadius: 44,
                     offset: const Offset(0, -4),
                   ),
@@ -169,22 +169,28 @@ class UserProfilePage extends StatelessWidget {
                   _SettingTile(
                     icon: Icons.shield_outlined,
                     title: 'Manage Network',
-                    subtitle: 'Change Password',
-                    onTap: onManageNetworkTap,
+                    subtitle: 'gdms',
+                    onTap:
+                        onManageNetworkTap ??
+                        () => Navigator.of(context).pushNamed('/gdms'),
                   ),
                   const SizedBox(height: 21),
                   _SettingTile(
                     icon: Icons.favorite_border,
                     title: 'Help & Support',
                     subtitle: 'Contact Support team',
-                    onTap: onHelpTap,
+                    onTap:
+                        onHelpTap ??
+                        () => Navigator.of(context).pushNamed('/help'),
                   ),
                   const SizedBox(height: 21),
                   _SettingTile(
                     icon: Icons.article_outlined,
                     title: 'About App',
                     subtitle: 'Find all the contacts here',
-                    onTap: onAboutTap,
+                    onTap:
+                        onAboutTap ??
+                        () => Navigator.of(context).pushNamed('/about'),
                   ),
                 ],
               ),

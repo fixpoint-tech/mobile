@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1
+  web: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -62,6 +63,7 @@ flutter:
   assets:
     - assets/flags/lk.svg
     - lib/features/list_pages/widgets/dominoz-logo.png
+    - assets/logo/fixpoint_logo.png
     
   # To add assets to your application, add an assets section, like this:
   # assets:

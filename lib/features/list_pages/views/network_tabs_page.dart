@@ -1,5 +1,5 @@
 // ignore_for_file: avoid_web_libraries_in_flutter
-import 'dart:html' as html; // web hash syncing
+import 'package:web/web.dart' as web; // web hash syncing
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -42,19 +42,25 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 4, vsync: this, initialIndex: widget.initialIndex);
+    _tab = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialIndex,
+    );
     _tab.addListener(() {
       if (!_tab.indexIsChanging) _pushHashFor(_tab.index);
       setState(() {}); // refresh pills + section title on swipe
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _pushHashFor(_tab.index));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _pushHashFor(_tab.index),
+    );
   }
 
   void _pushHashFor(int index) {
     if (!kIsWeb) return;
     final desired = '#${_routes[index]}';
-    if (html.window.location.hash != desired) {
-      html.window.history.pushState(null, '', desired);
+    if (web.window.location.hash != desired) {
+      web.window.history.pushState(null, '', desired);
     }
   }
 
@@ -193,8 +199,8 @@ class _Header extends StatelessWidget {
               const Text(
                 'Induwara Ranasinghe',
                 style: TextStyle(
-                  fontSize: 18,                 // +1pt vs before
-                  fontWeight: FontWeight.w700,  // name is clearly bold in Figma
+                  fontSize: 18, // +1pt vs before
+                  fontWeight: FontWeight.w700, // name is clearly bold in Figma
                   color: Colors.black87,
                   height: 1.1,
                 ),
@@ -204,7 +210,7 @@ class _Header extends StatelessWidget {
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.notifications), // filled bell like Figma
-            color: Colors.black,                    // solid black
+            color: Colors.black, // solid black
             iconSize: 22,
             onPressed: () {},
             tooltip: 'Notifications',
@@ -214,7 +220,6 @@ class _Header extends StatelessWidget {
     );
   }
 }
-
 
 // -----------------------------------------------------------------------------
 // Operational Card
@@ -234,7 +239,7 @@ class _OperationalCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.25),
+            color: color.withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -461,5 +466,3 @@ class _CenterDockedFab extends StatelessWidget {
 class _NetworkBlue {
   static const k = Color(0xFF50B6DC);
 }
-
-
