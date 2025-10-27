@@ -191,7 +191,7 @@ class TicketBubble extends StatelessWidget {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: attachments.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      separatorBuilder: (_, index) => const SizedBox(width: 12),
                       itemBuilder: (context, i) {
                         final url = attachments[i];
                         final hasImage = url.isNotEmpty;
@@ -207,10 +207,11 @@ class TicketBubble extends StatelessWidget {
                                     child: Image.network(
                                       url,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, _) => Icon(
-                                        Icons.broken_image_outlined,
-                                        color: Colors.grey.shade500,
-                                      ),
+                                      errorBuilder: (_, error, stackTrace) =>
+                                          Icon(
+                                            Icons.broken_image_outlined,
+                                            color: Colors.grey.shade500,
+                                          ),
                                     ),
                                   )
                                 : Icon(

@@ -52,7 +52,7 @@ class _ImageGalleryViewerState extends State<ImageGalleryViewer> {
                     child: Image.network(
                       url,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, error, stackTrace) => const Icon(
                         Icons.broken_image_outlined,
                         size: 64,
                         color: Colors.white70,

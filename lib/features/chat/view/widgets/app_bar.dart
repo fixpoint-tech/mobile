@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CustomChatAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const CustomChatAppBar({Key? key}) : super(key: key);
+  const CustomChatAppBar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +23,19 @@ class CustomChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFD9D9D9), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFFD9D9D9),
+                    width: 1.5,
+                  ),
                 ),
                 child: IconButton(
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.arrow_back, size: 18, color: Colors.black),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    size: 18,
+                    color: Colors.black,
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -36,7 +43,10 @@ class CustomChatAppBar extends StatelessWidget implements PreferredSizeWidget {
               const SizedBox(width: 12),
 
               // AVATAR
-              const CircleAvatar(radius: 22, backgroundColor: Color(0xFFFF7489)),
+              const CircleAvatar(
+                radius: 22,
+                backgroundColor: Color(0xFFFF7489),
+              ),
 
               const SizedBox(width: 12),
 
@@ -47,7 +57,11 @@ class CustomChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                 children: const [
                   Text(
                     "Pizza Oven Malfunction",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
                   Text(
                     "Kottawa Branch, Sri Lanka",

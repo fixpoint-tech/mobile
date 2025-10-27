@@ -86,7 +86,7 @@ class _MessageInputFieldState extends State<MessageInputField> {
                     highlightColor: Colors.transparent,
                     hoverColor: Colors.transparent,
                     focusColor: Colors.transparent,
-                    overlayColor: const MaterialStatePropertyAll(
+                    overlayColor: const WidgetStatePropertyAll(
                       Colors.transparent,
                     ),
                     onTap: () {

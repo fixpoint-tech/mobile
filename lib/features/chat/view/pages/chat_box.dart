@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/features/chat/view/widgets/app_bar.dart';
 import 'package:mobile/features/chat/view/widgets/message_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/messge_input_field.dart';
-import 'package:mobile/features/chat/view/widgets/ticket-bubble.dart';
+import 'package:mobile/features/chat/view/widgets/ticket_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/assignment_bubble.dart';
 import 'package:mobile/features/user/model/user_role.dart'; // added
 import 'package:mobile/features/chat/view/widgets/issue_closed_bubble.dart'; // added

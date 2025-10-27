@@ -49,7 +49,7 @@ class PettyCashRequestBubble extends StatelessWidget {
                 borderRadius: const BorderRadius.all(Radius.circular(22)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -160,11 +160,12 @@ class PettyCashRequestBubble extends StatelessWidget {
                               _requestIconAsset,
                               width: 18,
                               height: 18,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.payments_outlined,
-                                size: 18,
-                                color: Color(0xFF727272),
-                              ),
+                              errorBuilder: (_, error, stackTrace) =>
+                                  const Icon(
+                                    Icons.payments_outlined,
+                                    size: 18,
+                                    color: Color(0xFF727272),
+                                  ),
                             ),
                             label: const Text(
                               'Request',

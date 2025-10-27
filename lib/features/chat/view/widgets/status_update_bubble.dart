@@ -51,7 +51,7 @@ class StatusUpdateBubble extends StatelessWidget {
                     borderRadius: const BorderRadius.all(Radius.circular(22)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -115,7 +115,7 @@ class StatusUpdateBubble extends StatelessWidget {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: attachments.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      separatorBuilder: (_, index) => const SizedBox(width: 12),
                       itemBuilder: (context, i) {
                         final url = attachments[i];
                         final hasImage = url.isNotEmpty;
@@ -131,10 +131,11 @@ class StatusUpdateBubble extends StatelessWidget {
                                     child: Image.network(
                                       url,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Icon(
-                                        Icons.broken_image_outlined,
-                                        color: Colors.grey.shade500,
-                                      ),
+                                      errorBuilder: (_, error, stackTrace) =>
+                                          Icon(
+                                            Icons.broken_image_outlined,
+                                            color: Colors.grey.shade500,
+                                          ),
                                     ),
                                   )
                                 : Icon(
