@@ -36,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleForgotPassword() {
-    // TODO: Navigate to forgot password page
+    Navigator.pushNamed(context, '/forgot-password');
   }
 
   @override

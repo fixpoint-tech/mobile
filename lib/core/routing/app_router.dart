@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../features/auth/view/splash_screen.dart';
 import '../../features/auth/view/login_page.dart';
 import '../../features/auth/view/signup_page.dart';
+import '../../features/auth/view/forgot_password_page.dart';
 import '../../features/tickets/view/ticket_list_page.dart';
 import '../../features/tickets/view/report_new_issue_page.dart';
 import '../../features/tickets/view/reported_issues_page.dart';
@@ -22,6 +23,7 @@ class RouteNames {
   static const String home = '/home';
   static const String login = '/login';
   static const String signup = '/signup';
+  static const String forgotPassword = '/forgot-password';
   static const String tickets = '/tickets';
   static const String chat = '/chat';
   static const String profile = '/profile';
@@ -47,6 +49,7 @@ class AppRouter {
     RouteNames.home: (context) => const MaintenanceExecutiveHomePage(),
     RouteNames.login: (context) => const LoginPage(),
     RouteNames.signup: (context) => const SignUpPage(),
+    RouteNames.forgotPassword: (context) => const ForgotPasswordPage(),
     RouteNames.tickets: (context) => const TicketListPage(),
     RouteNames.chat: (context) => const ChatPage(),
     RouteNames.profile: (context) => FutureBuilder<AppUser>(
