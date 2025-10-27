@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
+import '../../theme/app_colors.dart';
 
 /// Reusable bottom navigation bar widget
 /// Shows light blue bar with optional plus button
@@ -18,7 +18,7 @@ class CustomBottomNavigation extends StatelessWidget {
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: AppColors.secondaryLight,
         boxShadow: [
           BoxShadow(
             color: AppColors.shadow,
@@ -38,15 +38,12 @@ class CustomBottomNavigation extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primary,
-                        AppColors.primary.withValues(alpha: 0.8),
-                      ],
+                      colors: [AppColors.secondary, AppColors.secondary100],
                     ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
+                        color: AppColors.secondary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),

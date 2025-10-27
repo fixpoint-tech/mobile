@@ -5,7 +5,7 @@ import '../../../shared/widgets/user_header.dart';
 import '../../../shared/widgets/status_filter_chip.dart';
 import '../../../shared/widgets/issue_card.dart';
 import '../../../shared/widgets/custom_bottom_navigation.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../theme/app_colors.dart';
 
 class TechnicianHomePage extends StatefulWidget {
   const TechnicianHomePage({super.key});
@@ -52,7 +52,7 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
 
           // Filter Tabs
           Container(
-            color: Colors.white,
+            color: AppColors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: ListenableBuilder(
               listenable: _issueController,
@@ -61,7 +61,8 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
                   children: [
                     StatusFilterChip(
                       label: 'Open',
-                      isSelected: _issueController.selectedFilter == IssueStatus.open,
+                      isSelected:
+                          _issueController.selectedFilter == IssueStatus.open,
                       onTap: () {
                         setState(() {
                           _issueController.setFilter(IssueStatus.open);
@@ -71,7 +72,9 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
                     const SizedBox(width: 8),
                     StatusFilterChip(
                       label: 'In Progress',
-                      isSelected: _issueController.selectedFilter == IssueStatus.inProgress,
+                      isSelected:
+                          _issueController.selectedFilter ==
+                          IssueStatus.inProgress,
                       onTap: () {
                         setState(() {
                           _issueController.setFilter(IssueStatus.inProgress);
@@ -81,7 +84,8 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
                     const SizedBox(width: 8),
                     StatusFilterChip(
                       label: 'Done',
-                      isSelected: _issueController.selectedFilter == IssueStatus.done,
+                      isSelected:
+                          _issueController.selectedFilter == IssueStatus.done,
                       onTap: () {
                         setState(() {
                           _issueController.setFilter(IssueStatus.done);
@@ -124,14 +128,11 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+              Icon(Icons.inbox_outlined, size: 64, color: AppColors.grey),
               const SizedBox(height: 16),
               Text(
                 'No issues found',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
               ),
             ],
           ),
