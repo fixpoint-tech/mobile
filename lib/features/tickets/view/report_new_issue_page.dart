@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../controller/issue_controller.dart';
 import '../model/issue_model.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../theme/app_colors.dart';
 
 class ReportNewIssuePage extends StatefulWidget {
   const ReportNewIssuePage({super.key});
@@ -536,7 +536,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
               ],
             ),
             backgroundColor:
-                AppColors.accentLight, // Light pink background (#FFE4F2)
+                AppColors.accent100, // Light pink background (#FFE4F2)
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

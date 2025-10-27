@@ -5,7 +5,7 @@ import '../../../shared/widgets/user_header.dart';
 import '../../../shared/widgets/status_filter_chip.dart';
 import '../../../shared/widgets/issue_card.dart';
 import '../../../shared/widgets/custom_bottom_navigation.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../theme/app_colors.dart';
 
 class BranchManagerHomePage extends StatefulWidget {
   const BranchManagerHomePage({super.key});
@@ -63,42 +63,52 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
                         // Report Issue Card
                         _buildReportIssueCard(),
                         const SizedBox(height: 24),
-                        
+
                         // Recent Issues Title
-                        const Text(
+                        Text(
                           'Recent Issues',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: AppColors.textTitle,
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Filter Chips
                         Row(
                           children: [
                             StatusFilterChip(
                               label: 'Open',
-                              isSelected: _issueController.selectedFilter == IssueStatus.open,
-                              onTap: () => _issueController.setFilter(IssueStatus.open),
+                              isSelected:
+                                  _issueController.selectedFilter ==
+                                  IssueStatus.open,
+                              onTap: () =>
+                                  _issueController.setFilter(IssueStatus.open),
                             ),
                             const SizedBox(width: 8),
                             StatusFilterChip(
                               label: 'In Progress',
-                              isSelected: _issueController.selectedFilter == IssueStatus.inProgress,
-                              onTap: () => _issueController.setFilter(IssueStatus.inProgress),
+                              isSelected:
+                                  _issueController.selectedFilter ==
+                                  IssueStatus.inProgress,
+                              onTap: () => _issueController.setFilter(
+                                IssueStatus.inProgress,
+                              ),
                             ),
                             const SizedBox(width: 8),
                             StatusFilterChip(
                               label: 'Done',
-                              isSelected: _issueController.selectedFilter == IssueStatus.done,
-                              onTap: () => _issueController.setFilter(IssueStatus.done),
+                              isSelected:
+                                  _issueController.selectedFilter ==
+                                  IssueStatus.done,
+                              onTap: () =>
+                                  _issueController.setFilter(IssueStatus.done),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Issue List based on filter
                         _buildFilteredIssueList(),
                       ],
@@ -108,7 +118,6 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
               },
             ),
           ),
-
         ],
       ),
       // Bottom Navigation
@@ -127,10 +136,7 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF4FC3F7),
-            Color(0xFF29B6F6),
-          ],
+          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -144,13 +150,13 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
               const Text(
                 'Found a problem',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.more_vert, color: Colors.white),
+                icon: Icon(Icons.more_vert, color: AppColors.white),
                 onPressed: () {
                   // Show menu options
                 },
@@ -162,11 +168,7 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
           const SizedBox(height: 8),
           const Text(
             'Report the maintenance need\nhere.',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              height: 1.5,
-            ),
+            style: TextStyle(color: AppColors.white, fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
@@ -175,15 +177,12 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
               Navigator.pushNamed(context, '/report-new-issue');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.white,
               foregroundColor: const Color(0xFF4FC3F7),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -201,17 +200,14 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
 
   Widget _buildFilteredIssueList() {
     final filteredIssues = _issueController.filteredIssues;
-    
+
     if (filteredIssues.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(32.0),
           child: Text(
             'No issues found',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
           ),
         ),
       );
@@ -221,8 +217,9 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
     // Show critical bell icon only for "Open" issues with "Critical" status
     return Column(
       children: filteredIssues.map((issue) {
-        final isOpenAndCritical = _issueController.selectedFilter == IssueStatus.open;
-        
+        final isOpenAndCritical =
+            _issueController.selectedFilter == IssueStatus.open;
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: IssueCard(

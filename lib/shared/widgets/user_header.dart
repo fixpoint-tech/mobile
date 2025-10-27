@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_text_styles.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
 import '../../core/routing/app_router.dart';
 
 /// Reusable user header widget
@@ -30,15 +30,15 @@ class UserHeader extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: AppColors.primaryLight,
-              child: const Icon(Icons.person, color: AppColors.primary),
+              backgroundColor: AppColors.secondaryLight,
+              child: Icon(Icons.person, color: AppColors.secondary),
             ),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(userName, style: AppTextStyles.userName),
-                Text(userRole, style: AppTextStyles.userRole),
+                Text(userName, style: AppTypography.userName),
+                Text(userRole, style: AppTypography.userRole),
               ],
             ),
             const Spacer(),
