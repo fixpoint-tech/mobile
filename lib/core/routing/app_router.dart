@@ -3,7 +3,7 @@ import '../../features/auth/view/login_page.dart';
 import '../../features/tickets/view/ticket_list_page.dart';
 import '../../features/tickets/view/report_new_issue_page.dart';
 import '../../features/tickets/view/reported_issues_page.dart';
-import '../../features/home/view/home_page.dart';
+import '../../features/chat/view/pages/chat_box.dart';
 import '../../features/profile/view/user_profile_page.dart';
 import '../../features/profile/view/edit_profile_page.dart';
 import '../../features/profile/data/user_repository.dart';
@@ -19,6 +19,7 @@ class RouteNames {
   static const String home = '/';
   static const String login = '/login';
   static const String tickets = '/tickets';
+  static const String chat = '/chat';
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
   static const String about = '/about';
@@ -38,9 +39,10 @@ class RouteNames {
 
 class AppRouter {
   static final Map<String, WidgetBuilder> routes = {
-    RouteNames.home: (context) => const HomePage(),
+    RouteNames.home: (context) => const MaintenanceExecutiveHomePage(),
     RouteNames.login: (context) => const LoginPage(),
     RouteNames.tickets: (context) => const TicketListPage(),
+    RouteNames.chat: (context) => const ChatPage(),
     RouteNames.profile: (context) => FutureBuilder<AppUser>(
       future: MockUserRepository().getCurrentUser(),
       builder: (context, snapshot) {
@@ -64,7 +66,8 @@ class AppRouter {
     ),
     RouteNames.editProfile: (context) => const EditProfilePage(),
     RouteNames.branchManagerHome: (context) => const BranchManagerHomePage(),
-    RouteNames.maintenanceExecutiveHome: (context) => const MaintenanceExecutiveHomePage(),
+    RouteNames.maintenanceExecutiveHome: (context) =>
+        const MaintenanceExecutiveHomePage(),
     RouteNames.technicianHome: (context) => const TechnicianHomePage(),
     RouteNames.reportNewIssue: (context) => const ReportNewIssuePage(),
     RouteNames.reportedIssues: (context) => const ReportedIssuesPage(),
@@ -93,9 +96,9 @@ class AppRouter {
       return MaterialPageRoute(builder: builder, settings: settings);
     }
 
-    // Fallback to home page instead of showing 404
+    // Fallback to maintenance executive home page instead of showing 404
     return MaterialPageRoute(
-      builder: (context) => const HomePage(),
+      builder: (context) => const MaintenanceExecutiveHomePage(),
       settings: settings,
     );
   }
