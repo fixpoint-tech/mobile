@@ -234,4 +234,26 @@ class IssueController extends ChangeNotifier {
       rethrow; // Re-throw so the UI can show an error message
     }
   }
+
+  /// Delete an issue by id. Removes locally on success.
+  Future<void> deleteIssue(int issueId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _apiService.deleteIssue(issueId);
+
+      // Remove from local list if present
+      _issues.removeWhere((issue) => issue.id == issueId);
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
 }
