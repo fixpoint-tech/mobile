@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../user/view/edit_outlet_page.dart';
 
 class OutletsTabContent extends StatelessWidget {
   const OutletsTabContent({super.key});
@@ -37,12 +38,20 @@ class OutletsTabContent extends StatelessWidget {
       itemCount: outlets.length,
       itemBuilder: (_, i) {
         final o = outlets[i];
-        return _outletCard(name: o['name']!, address: o['address']!);
+        return _outletCard(
+          context: context,
+          name: o['name']!,
+          address: o['address']!,
+        );
       },
     );
   }
 
-  Widget _outletCard({required String name, required String address}) {
+  Widget _outletCard({
+    required BuildContext context,
+    required String name,
+    required String address,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -93,7 +102,14 @@ class OutletsTabContent extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
             color: Colors.black54,
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      EditOutletPage(outletName: name, outletAddress: address),
+                ),
+              );
+            },
           ),
         ],
       ),

@@ -4,6 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/routing/app_router.dart';
+import '../../user/view/add_gdm_page.dart';
+import '../../user/view/add_gpm_page.dart';
+import '../../user/view/add_outlet_page.dart';
+import '../../user/view/add_me_page.dart';
 import 'gdms_tab_content.dart';
 import 'gpms_tab_content.dart';
 import 'outlets_tab_content.dart';
@@ -126,7 +130,34 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
 
       // Footer + FAB (circular)
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: const _CenterDockedFab(color: cPrimaryCard),
+      floatingActionButton: _CenterDockedFab(
+        color: cPrimaryCard,
+        onPressed: () {
+          // Navigate to appropriate add page based on current tab
+          switch (_tab.index) {
+            case 0: // GDMs
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AddGDMPage()),
+              );
+              break;
+            case 1: // GPMs
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AddGPMPage()),
+              );
+              break;
+            case 2: // Outlets
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AddOutletPage()),
+              );
+              break;
+            case 3: // MEs
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AddMEPage()),
+              );
+              break;
+          }
+        },
+      ),
       bottomNavigationBar: const _CurvedFooter(
         height: 70,
         background: cFooter,
@@ -179,10 +210,15 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          const CircleAvatar(
-            radius: 28,
-            backgroundColor: _NetworkBlue.k,
-            child: Icon(Icons.person, color: Colors.white, size: 28),
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, RouteNames.profile);
+            },
+            child: const CircleAvatar(
+              radius: 28,
+              backgroundColor: _NetworkBlue.k,
+              child: Icon(Icons.person, color: Colors.white, size: 28),
+            ),
           ),
           const SizedBox(width: 12),
           Column(
@@ -448,8 +484,9 @@ class _FooterPainter extends CustomPainter {
 }
 
 class _CenterDockedFab extends StatelessWidget {
-  const _CenterDockedFab({required this.color});
+  const _CenterDockedFab({required this.color, this.onPressed});
   final Color color;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -457,7 +494,7 @@ class _CenterDockedFab extends StatelessWidget {
       shape: const CircleBorder(),
       elevation: 6,
       backgroundColor: color,
-      onPressed: () {},
+      onPressed: onPressed ?? () {},
       child: const Icon(Icons.add, color: Colors.white, size: 28),
     );
   }

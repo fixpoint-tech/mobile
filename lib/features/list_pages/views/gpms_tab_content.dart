@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../user/view/edit_gpm_details_page.dart';
 
 class GPMsTabContent extends StatelessWidget {
   const GPMsTabContent({super.key});
@@ -20,6 +21,7 @@ class GPMsTabContent extends StatelessWidget {
       itemBuilder: (_, i) {
         final item = data[i];
         return _personCard(
+          context: context,
           name: item['name']!,
           subtitle: item['meta']!,
           color: const Color(0xFF42A5F5),
@@ -29,10 +31,15 @@ class GPMsTabContent extends StatelessWidget {
   }
 
   Widget _personCard({
+    required BuildContext context,
     required String name,
     required String subtitle,
     required Color color,
   }) {
+    // Extract outlet name from subtitle (e.g., "GPM | Kottawa Outlet" -> "Kottawa Outlet")
+    final outletName = subtitle.contains('|')
+        ? subtitle.split('|').last.trim()
+        : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -78,7 +85,14 @@ class GPMsTabContent extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
             color: Colors.black54,
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      EditGPMDetailsPage(gpmName: name, gpmOutlet: outletName),
+                ),
+              );
+            },
           ),
         ],
       ),
