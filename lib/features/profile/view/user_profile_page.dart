@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 
 class UserProfilePage extends StatelessWidget {
   const UserProfilePage({
@@ -32,7 +33,8 @@ class UserProfilePage extends StatelessWidget {
       appBar: AppBar(
         elevation: 2,
         centerTitle: true,
-        surfaceTintColor: Colors.white,
+        surfaceTintColor: AppColors.white,
+        backgroundColor: AppColors.white,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
         ),
@@ -42,15 +44,21 @@ class UserProfilePage extends StatelessWidget {
             fontFamily: 'Outfit',
             fontWeight: FontWeight.w600,
             fontSize: 17.42,
-            color: Color(0xFF292A2D), // Mobile/Black
+            color: AppColors.textTitle,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.keyboard_arrow_left, size: 29),
-          onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+          icon: const Icon(
+            Icons.keyboard_arrow_left,
+            size: 29,
+            color: AppColors.textTitle,
+          ),
+          onPressed:
+              onBack ??
+              () => Navigator.of(context).pushReplacementNamed('/home'),
         ),
       ),
-      backgroundColor: Colors.white, // Figma spec: white background
+      backgroundColor: AppColors.white,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(0),
@@ -64,11 +72,11 @@ class UserProfilePage extends StatelessWidget {
                 vertical: 22,
               ),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.white,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
+                    color: AppColors.shadow,
                     blurRadius: 44,
                     offset: const Offset(0, -4),
                   ),
@@ -82,7 +90,7 @@ class UserProfilePage extends StatelessWidget {
                     height: 55,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white,
+                      color: AppColors.white,
                       image: avatarUrl != null && avatarUrl!.isNotEmpty
                           ? DecorationImage(
                               image: NetworkImage(avatarUrl!),
@@ -94,7 +102,7 @@ class UserProfilePage extends StatelessWidget {
                         ? const Icon(
                             Icons.person,
                             size: 28,
-                            color: Color(0xFFD7D7D7),
+                            color: AppColors.grey,
                           )
                         : null,
                   ),
@@ -104,39 +112,39 @@ class UserProfilePage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // "Hello!" (Figma spec: Outfit 13.55, 400)
+                        // "Hello!"
                         const Text(
                           'Hello!',
                           style: TextStyle(
                             fontFamily: 'Outfit',
                             fontWeight: FontWeight.w400,
                             fontSize: 13.55,
-                            color: Color(0xFF000000),
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        // Name (Figma spec: Outfit 18.39, 600)
+                        // Name
                         Text(
                           fullName,
                           style: const TextStyle(
                             fontFamily: 'Outfit',
                             fontWeight: FontWeight.w600,
                             fontSize: 18.39,
-                            color: Color(0xFF000000),
+                            color: AppColors.textTitle,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (subtitle != null) ...[
                           const SizedBox(height: 2),
-                          // Subtitle (increased for readability)
+                          // Subtitle
                           Text(
                             subtitle!,
                             style: const TextStyle(
                               fontFamily: 'Outfit',
                               fontWeight: FontWeight.w400,
                               fontSize: 12.58,
-                              color: Color(0xFF7B7B7B),
+                              color: AppColors.textSecondary,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -198,7 +206,7 @@ class UserProfilePage extends StatelessWidget {
 
             const SizedBox(height: 160),
 
-            // Log out (Figma spec: Inter 15.49, 400, #979C9E)
+            // Log out
             Center(
               child: TextButton(
                 onPressed: onLogout,
@@ -208,7 +216,7 @@ class UserProfilePage extends StatelessWidget {
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w400,
                     fontSize: 15.49,
-                    color: Color(0xFF979C9E), // Sky/Dark
+                    color: AppColors.textDisabled,
                   ),
                 ),
               ),
@@ -239,38 +247,34 @@ class _SettingTile extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          // Icon (Figma spec: 23.23 size, #46BDF0 Accent-200 color)
-          Icon(
-            icon,
-            size: 23,
-            color: const Color(0xFF46BDF0), // Accent-200
-          ),
+          // Icon
+          Icon(icon, size: 23, color: AppColors.accent200),
           const SizedBox(width: 24),
           // Text section
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title (Figma spec: Outfit 19.36, 500, #373737)
+                // Title
                 Text(
                   title,
                   style: const TextStyle(
                     fontFamily: 'Outfit',
                     fontWeight: FontWeight.w500,
                     fontSize: 19.36,
-                    color: Color(0xFF373737),
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 3),
-                  // Subtitle (Figma spec: Outfit 12.58, 300, #373737)
+                  // Subtitle
                   Text(
                     subtitle!,
                     style: const TextStyle(
                       fontFamily: 'Outfit',
                       fontWeight: FontWeight.w300,
                       fontSize: 12.58,
-                      color: Color(0xFF373737),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ],
@@ -279,7 +283,11 @@ class _SettingTile extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           // Chevron right
-          const Icon(Icons.chevron_right, size: 24, color: Color(0xFF373737)),
+          const Icon(
+            Icons.chevron_right,
+            size: 24,
+            color: AppColors.textPrimary,
+          ),
         ],
       ),
     );

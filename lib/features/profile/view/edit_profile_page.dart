@@ -82,15 +82,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
             fontFamily: 'Outfit',
             fontWeight: FontWeight.w600,
             fontSize: 18,
+            color: AppColors.textTitle,
           ),
         ),
         elevation: 2,
-        surfaceTintColor: Colors.white,
+        surfaceTintColor: AppColors.white,
+        backgroundColor: AppColors.white,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.keyboard_arrow_left),
+          icon: const Icon(
+            Icons.keyboard_arrow_left,
+            color: AppColors.textTitle,
+          ),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         actions: [
@@ -123,16 +128,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
       body: Stack(
         children: [
-          // Soft rainbow/pastel background (Figma spec)
+          // Soft background gradient
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFFF8FDFF), // AppColors.primary
-                  Color.fromRGBO(214, 243, 253, 0.75), // D6F3FD
-                  Color.fromRGBO(255, 228, 242, 0.55), // FFE4F2
+                  AppColors.primary,
+                  AppColors.secondaryLight.withValues(alpha: 0.75),
+                  AppColors.accent100.withValues(alpha: 0.55),
                 ],
                 stops: [0.1, 0.55, 1.0],
               ),
@@ -152,7 +157,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       height: 80,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white,
+                        color: AppColors.white,
                         image: user.avatarUrl != null
                             ? DecorationImage(
                                 image: NetworkImage(user.avatarUrl!),
@@ -164,7 +169,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ? const Icon(
                               Icons.person,
                               size: 40,
-                              color: Color(0xFFABABAB),
+                              color: AppColors.grey,
                             )
                           : null,
                     ),
@@ -175,7 +180,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         fontFamily: 'DM Sans',
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
-                        color: Color(0xFF181D27), // Primary black
+                        color: AppColors.textTitle,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -185,7 +190,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         fontFamily: 'DM Sans',
                         fontWeight: FontWeight.w400,
                         fontSize: 13,
-                        color: Color(0xFFABABAB), // Gray / Dark
+                        color: AppColors.grey,
                       ),
                     ),
                   ],
@@ -227,7 +232,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     icon: Icon(
                       _obscure1 ? Icons.visibility_off : Icons.visibility,
                       size: 14,
-                      color: const Color(0xFF7B7B7B),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -247,7 +252,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     icon: Icon(
                       _obscure2 ? Icons.visibility_off : Icons.visibility,
                       size: 14,
-                      color: const Color(0xFF7B7B7B),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -280,7 +285,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             fontFamily: 'Outfit',
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                         ),
                 ),
@@ -312,10 +317,10 @@ class _FilledField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 45, // Figma spec: 45px height
+      height: 45,
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F2), // Figma spec: #F2F2F2 (Primary-100)
-        borderRadius: BorderRadius.circular(10), // Figma spec: 10px radius
+        color: AppColors.primary100,
+        borderRadius: BorderRadius.circular(10),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -335,12 +340,12 @@ class _FilledField extends StatelessWidget {
                 fontSize: 12,
                 fontFamily: 'Outfit',
                 fontWeight: FontWeight.w400,
-                color: Color(0xFF000000),
+                color: AppColors.textTitle,
               ),
               decoration: InputDecoration(
                 hintText: hintText,
                 hintStyle: const TextStyle(
-                  color: Color(0xFF7B7B7B), // Figma spec
+                  color: AppColors.textSecondary,
                   fontSize: 12,
                   fontFamily: 'Outfit',
                   fontWeight: FontWeight.w400,
@@ -399,12 +404,12 @@ class _FlagImage extends StatelessWidget {
       height: 20,
       fit: BoxFit.cover,
       placeholderBuilder: (context) =>
-          const Icon(Icons.phone, size: 14, color: Color(0xFF7B7B7B)),
+          const Icon(Icons.phone, size: 14, color: AppColors.textSecondary),
     );
   }
 }
 
-/// Button (Figma spec: 41px height, #3EA8D0 color, 10px radius)
+/// Button
 class _GradientButton extends StatelessWidget {
   const _GradientButton({required this.child, this.onPressed});
 
@@ -414,10 +419,10 @@ class _GradientButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 41, // Figma spec: 41px height
+      height: 41,
       decoration: BoxDecoration(
-        color: const Color(0xFF3EA8D0), // Figma spec: #3EA8D0 (Secondary)
-        borderRadius: BorderRadius.circular(10), // Figma spec: 10px radius
+        color: AppColors.secondary,
+        borderRadius: BorderRadius.circular(10),
       ),
       child: ElevatedButton(
         onPressed: onPressed,

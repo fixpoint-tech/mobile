@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../user/view/edit_me_page.dart';
 
 class MEsTabContent extends StatelessWidget {
   const MEsTabContent({super.key});
@@ -15,12 +16,20 @@ class MEsTabContent extends StatelessWidget {
       itemCount: data.length,
       itemBuilder: (_, i) {
         final m = data[i];
-        return _personCard(name: m['name']!, subtitle: m['meta']!);
+        return _personCard(
+          context: context,
+          name: m['name']!,
+          subtitle: m['meta']!,
+        );
       },
     );
   }
 
-  Widget _personCard({required String name, required String subtitle}) {
+  Widget _personCard({
+    required BuildContext context,
+    required String name,
+    required String subtitle,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -66,7 +75,13 @@ class MEsTabContent extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
             color: Colors.black54,
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => EditMEPage(meName: name),
+                ),
+              );
+            },
           ),
         ],
       ),

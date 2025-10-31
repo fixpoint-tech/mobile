@@ -179,10 +179,15 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          const CircleAvatar(
-            radius: 28,
-            backgroundColor: _NetworkBlue.k,
-            child: Icon(Icons.person, color: Colors.white, size: 28),
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, RouteNames.profile);
+            },
+            child: const CircleAvatar(
+              radius: 28,
+              backgroundColor: _NetworkBlue.k,
+              child: Icon(Icons.person, color: Colors.white, size: 28),
+            ),
           ),
           const SizedBox(width: 12),
           Column(

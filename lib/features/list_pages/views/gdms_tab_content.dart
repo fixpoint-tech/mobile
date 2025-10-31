@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../user/view/edit_gdm_details_page.dart';
 
 class GDMsTabContent extends StatelessWidget {
   const GDMsTabContent({super.key});
@@ -20,6 +21,7 @@ class GDMsTabContent extends StatelessWidget {
       itemBuilder: (_, i) {
         final item = data[i];
         return _personCard(
+          context: context,
           name: item['name']!,
           subtitle: item['meta']!,
           color: const Color(0xFFFFA726),
@@ -29,10 +31,16 @@ class GDMsTabContent extends StatelessWidget {
   }
 
   Widget _personCard({
+    required BuildContext context,
     required String name,
     required String subtitle,
     required Color color,
   }) {
+    // Extract outlet name from subtitle (e.g., "GDM | Kottawa Outlet" -> "Kottawa Outlet")
+    final outletName = subtitle.contains('|')
+        ? subtitle.split('|').last.trim()
+        : null;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -78,7 +86,14 @@ class GDMsTabContent extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
             color: Colors.black54,
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      EditGDMDetailsPage(gdmName: name, gdmOutlet: outletName),
+                ),
+              );
+            },
           ),
         ],
       ),
