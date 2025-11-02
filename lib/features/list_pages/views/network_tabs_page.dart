@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/routing/app_router.dart';
+import '../../../core/services/branch_manager_service.dart';
+import '../../../core/services/branch_service.dart';
+import '../../../core/services/maintenance_executive_service.dart';
 import '../../user/view/add_gdm_page.dart';
 import '../../user/view/add_gpm_page.dart';
 import '../../user/view/add_outlet_page.dart';
@@ -24,6 +27,18 @@ class NetworkTabsPage extends StatefulWidget {
 class _NetworkTabsPageState extends State<NetworkTabsPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tab;
+  
+  // Services for fetching counts
+  final BranchManagerService _branchManagerService = BranchManagerService();
+  final BranchService _branchService = BranchService();
+  final MaintenanceExecutiveService _meService = MaintenanceExecutiveService();
+  
+  // Dynamic counts
+  int _gdmCount = 0;
+  int _gpmCount = 0;
+  int _outletCount = 0;
+  int _meCount = 0;
+  bool _isLoadingCounts = true;
 
   // 🎨 Figma palette
   static const Color cPrimaryCard = Color(0xFF50B6DC); // operational card + FAB
@@ -58,6 +73,27 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _pushHashFor(_tab.index),
     );
+    _loadCounts();
+  }
+
+  Future<void> _loadCounts() async {
+    try {
+      final branchManagers = await _branchManagerService.getAllBranchManagers();
+      final outlets = await _branchService.getAllBranches();
+      final mes = await _meService.getAllMaintenanceExecutives();
+      
+      setState(() {
+        _gdmCount = branchManagers.where((bm) => bm.branchId == null).length;
+        _gpmCount = branchManagers.where((bm) => bm.branchId != null).length;
+        _outletCount = outlets.length;
+        _meCount = mes.length;
+        _isLoadingCounts = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingCounts = false;
+      });
+    }
   }
 
   void _pushHashFor(int index) {
@@ -107,6 +143,7 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
               _SectionTitle(
                 title: _titleForTab(_tab.index),
                 count: _countForTab(_tab.index),
+                isLoading: _isLoadingCounts,
                 chipBg: cCountBg,
                 chipText: cCountText,
               ),
@@ -132,29 +169,35 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: _CenterDockedFab(
         color: cPrimaryCard,
-        onPressed: () {
+        onPressed: () async {
           // Navigate to appropriate add page based on current tab
+          bool? shouldRefresh;
           switch (_tab.index) {
             case 0: // GDMs
-              Navigator.of(context).push(
+              shouldRefresh = await Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const AddGDMPage()),
               );
               break;
             case 1: // GPMs
-              Navigator.of(context).push(
+              shouldRefresh = await Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const AddGPMPage()),
               );
               break;
             case 2: // Outlets
-              Navigator.of(context).push(
+              shouldRefresh = await Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const AddOutletPage()),
               );
               break;
             case 3: // MEs
-              Navigator.of(context).push(
+              shouldRefresh = await Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const AddMEPage()),
               );
               break;
+          }
+          // Refresh the page if needed
+          if (shouldRefresh == true && mounted) {
+            setState(() {});
+            _loadCounts(); // Reload counts after adding new item
           }
         },
       ),
@@ -181,16 +224,16 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
     }
   }
 
-  static String _countForTab(int i) {
+  String _countForTab(int i) {
     switch (i) {
       case 0:
-        return '52';
+        return _gdmCount.toString();
       case 1:
-        return '10';
+        return _gpmCount.toString();
       case 2:
-        return '6';
+        return _outletCount.toString();
       case 3:
-        return '2';
+        return _meCount.toString();
       default:
         return '0';
     }
@@ -377,12 +420,14 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle({
     required this.title,
     required this.count,
+    required this.isLoading,
     required this.chipBg,
     required this.chipText,
   });
 
   final String title;
   final String count;
+  final bool isLoading;
   final Color chipBg;
   final Color chipText;
 
@@ -408,14 +453,20 @@ class _SectionTitle extends StatelessWidget {
               color: chipBg,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(
-              count,
-              style: TextStyle(
-                color: chipText,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    count,
+                    style: TextStyle(
+                      color: chipText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
           ),
         ],
       ),
