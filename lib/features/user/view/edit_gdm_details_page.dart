@@ -1,23 +1,34 @@
 import 'package:flutter/material.dart';
+import '../../../core/models/branch_manager.dart';
+import '../../../core/services/branch_manager_service.dart';
 import '../../../theme/app_colors.dart';
 
 class EditGDMDetailsPage extends StatefulWidget {
+  final int? gdmId;
   final String? gdmName;
   final String? gdmOutlet;
 
-  const EditGDMDetailsPage({super.key, this.gdmName, this.gdmOutlet});
+  const EditGDMDetailsPage({
+    super.key,
+    this.gdmId,
+    this.gdmName,
+    this.gdmOutlet,
+  });
 
   @override
   State<EditGDMDetailsPage> createState() => _EditGDMDetailsPageState();
 }
 
 class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
+  final BranchManagerService _service = BranchManagerService();
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
   String? _selectedOutlet;
   bool _isLoading = false;
+  bool _isLoadingData = false;
+  BranchManager? _gdm;
 
   @override
   void initState() {
@@ -33,6 +44,40 @@ class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
     _selectedOutlet = widget.gdmOutlet;
+
+    // Load full data if ID is provided
+    if (widget.gdmId != null) {
+      _loadGDMData();
+    }
+  }
+
+  Future<void> _loadGDMData() async {
+    setState(() => _isLoadingData = true);
+
+    try {
+      final gdm = await _service.getBranchManagerById(widget.gdmId!);
+      setState(() {
+        _gdm = gdm;
+        final nameParts = gdm.name.split(' ');
+        _firstNameController.text = nameParts.isNotEmpty ? nameParts[0] : '';
+        _lastNameController.text =
+            nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+        _phoneController.text = gdm.phone ?? '';
+        _emailController.text = gdm.email;
+        _selectedOutlet = gdm.branchName;
+        _isLoadingData = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingData = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load GDM data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -45,26 +90,78 @@ class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
   }
 
   Future<void> _handleUpdateProfile() async {
+    if (widget.gdmId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot update: No GDM ID provided'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await _service.updateBranchManager(
+        id: widget.gdmId!,
+        name: '$firstName $lastName',
+        email: email,
+        phone: phone.isNotEmpty ? phone : null,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('GDM profile updated successfully'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('GDM profile updated successfully'),
-        backgroundColor: AppColors.secondary,
-      ),
-    );
+      Navigator.of(context).pop(true); // Return true to indicate success
+    } catch (e) {
+      if (!mounted) return;
 
-    Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update GDM: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _handleDeleteUser() async {
+    if (widget.gdmId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot delete: No GDM ID provided'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -87,13 +184,34 @@ class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
     );
 
     if (confirmed == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('GDM deleted successfully'),
-          backgroundColor: AppColors.accentError,
-        ),
-      );
-      Navigator.of(context).pop();
+      setState(() => _isLoading = true);
+
+      try {
+        await _service.deleteBranchManager(widget.gdmId!);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('GDM deleted successfully'),
+            backgroundColor: AppColors.accentError,
+          ),
+        );
+        Navigator.of(context).pop(true); // Return true to indicate success
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete GDM: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
