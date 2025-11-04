@@ -33,7 +33,7 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
   Widget build(BuildContext context) {
     // Get the issue passed as argument
     final issue = ModalRoute.of(context)?.settings.arguments as IssueModel?;
-    
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -69,7 +69,9 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
             padding: const EdgeInsets.all(16),
             color: Colors.white,
             child: Text(
-              issue != null ? _getStatusTitle(issue.status) : 'Ongoing Operations',
+              issue != null
+                  ? _getStatusTitle(issue.status)
+                  : 'Ongoing Operations',
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -77,7 +79,7 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
               ),
             ),
           ),
-          
+
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -86,7 +88,7 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
                   // Issue Detail Card
                   _buildIssueCard(issue),
                   const SizedBox(height: 16),
-                  
+
                   // Success/Error Messages
                   if (_showSuccessMessage) _buildSuccessMessage(),
                   if (_showErrorMessage) _buildErrorMessage(),
@@ -103,17 +105,19 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
   Widget _buildIssueCard(IssueModel? issue) {
     // Use default values if issue is null
     final title = issue?.title ?? 'Oven Operational Failure';
-    final description = issue?.description ?? 'During the yesterday evening shift the oven failed to heat. Control panel displayed error code "E12". Quick restart was unsuccessful.';
+    final description =
+        issue?.description ??
+        'During the yesterday evening shift the oven failed to heat. Control panel displayed error code "E12". Quick restart was unsuccessful.';
     final dateTime = issue?.createdAt ?? DateTime.now();
     final formattedDate = _formatDateTime(dateTime);
-    
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -130,14 +134,14 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
               const SizedBox(width: 6),
               Text(
                 formattedDate,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF4FC3F7),
                   borderRadius: BorderRadius.circular(12),
@@ -153,7 +157,8 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
               ),
               const SizedBox(width: 8),
               // Only show edit button if issue is not done
-              if (issue?.status != IssueStatus.done && issue?.status != IssueStatus.closed)
+              if (issue?.status != IssueStatus.done &&
+                  issue?.status != IssueStatus.closed)
                 IconButton(
                   icon: const Icon(Icons.edit, size: 18),
                   onPressed: () {
@@ -235,10 +240,7 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
         const SizedBox(width: 4),
         Text(
           count.toString(),
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
       ],
     );
@@ -256,10 +258,7 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
           const Expanded(
             child: Text(
               'New task created successfully',
-              style: TextStyle(
-                color: Color(0xFF2E7D32),
-                fontSize: 13,
-              ),
+              style: TextStyle(color: Color(0xFF2E7D32), fontSize: 13),
             ),
           ),
           GestureDetector(
@@ -268,7 +267,11 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
                 _showSuccessMessage = false;
               });
             },
-            child: const Icon(Icons.close, size: 18, color: Color(0xFF4FC3F7)), // Blue close icon
+            child: const Icon(
+              Icons.close,
+              size: 18,
+              color: Color(0xFF4FC3F7),
+            ), // Blue close icon
           ),
         ],
       ),
@@ -299,7 +302,11 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
                 _showErrorMessage = false;
               });
             },
-            child: const Icon(Icons.close, size: 18, color: Color(0xFF4FC3F7)), // Blue close icon
+            child: const Icon(
+              Icons.close,
+              size: 18,
+              color: Color(0xFF4FC3F7),
+            ), // Blue close icon
           ),
         ],
       ),
@@ -313,7 +320,7 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
         color: const Color(0xFFE3F2FD),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -327,15 +334,12 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF4FC3F7),
-                Color(0xFF29B6F6),
-              ],
+              colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
             ),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF4FC3F7).withOpacity(0.3),
+                color: const Color(0xFF4FC3F7).withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
