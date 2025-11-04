@@ -32,8 +32,8 @@ class StatusFilterChip extends StatelessWidget {
         child: Text(
           label,
           style: isSelected
-              ? AppTypography.chipSelected.copyWith(color: AppColors.secondary)
-              : AppTypography.chipUnselected,
+              ? AppTextStyles.chipSelected.copyWith(color: AppColors.secondary)
+              : AppTextStyles.chipUnselected,
         ),
       ),
     );
