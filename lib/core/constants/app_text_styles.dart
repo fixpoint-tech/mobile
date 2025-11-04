@@ -5,7 +5,7 @@ import 'app_colors.dart';
 /// Application text styles using Outfit font
 class AppTextStyles {
   // Base text style with Outfit font
-  static TextStyle _baseStyle = GoogleFonts.outfit();
+  static final TextStyle _baseStyle = GoogleFonts.outfit();
   
   // Heading styles
   static TextStyle heading1 = _baseStyle.copyWith(
