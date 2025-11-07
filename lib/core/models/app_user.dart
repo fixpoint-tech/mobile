@@ -22,6 +22,9 @@ class AppUser {
   final String roleTitle;
   final UserRole role;
   final String? avatarUrl;
+  final String? email;
+  final String? phone;
+  final Map<String, dynamic>? profile; // role-specific profile data
 
   const AppUser({
     required this.id,
@@ -29,6 +32,9 @@ class AppUser {
     required this.roleTitle,
     required this.role,
     this.avatarUrl,
+    this.email,
+    this.phone,
+    this.profile,
   });
 
   AppUser copyWith({
@@ -37,6 +43,9 @@ class AppUser {
     String? roleTitle,
     UserRole? role,
     String? avatarUrl,
+    String? email,
+    String? phone,
+    Map<String, dynamic>? profile,
   }) {
     return AppUser(
       id: id ?? this.id,
@@ -44,6 +53,9 @@ class AppUser {
       roleTitle: roleTitle ?? this.roleTitle,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      profile: profile ?? this.profile,
     );
   }
 }
