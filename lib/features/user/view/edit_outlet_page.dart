@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
+import '../../../core/models/branch.dart';
+import '../../../core/services/branch_service.dart';
 import '../../../theme/app_colors.dart';
 
 class EditOutletPage extends StatefulWidget {
+  final int? outletId;
   final String? outletName;
   final String? outletAddress;
 
-  const EditOutletPage({super.key, this.outletName, this.outletAddress});
+  const EditOutletPage({
+    super.key,
+    this.outletId,
+    this.outletName,
+    this.outletAddress,
+  });
 
   @override
   State<EditOutletPage> createState() => _EditOutletPageState();
 }
 
 class _EditOutletPageState extends State<EditOutletPage> {
+  final BranchService _service = BranchService();
   late final TextEditingController _outletNameController;
   late final TextEditingController _cityNameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
   bool _isLoading = false;
+  bool _isLoadingData = false;
+  Branch? _outlet;
 
   @override
   void initState() {
@@ -25,6 +36,34 @@ class _EditOutletPageState extends State<EditOutletPage> {
     _cityNameController = TextEditingController();
     _phoneController = TextEditingController();
     _addressController = TextEditingController(text: widget.outletAddress);
+
+    if (widget.outletId != null) {
+      _loadOutletData();
+    }
+  }
+
+  Future<void> _loadOutletData() async {
+    setState(() => _isLoadingData = true);
+
+    try {
+      final outlet = await _service.getBranchById(widget.outletId!);
+      setState(() {
+        _outlet = outlet;
+        _outletNameController.text = outlet.name;
+        _addressController.text = outlet.location;
+        _isLoadingData = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingData = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load outlet data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -37,26 +76,75 @@ class _EditOutletPageState extends State<EditOutletPage> {
   }
 
   Future<void> _handleUpdateProfile() async {
+    if (widget.outletId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot update: No outlet ID provided'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final outletName = _outletNameController.text.trim();
+    final address = _addressController.text.trim();
+
+    if (outletName.isEmpty || address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await _service.updateBranch(
+        id: widget.outletId!,
+        name: outletName,
+        location: address,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Outlet updated successfully'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Outlet updated successfully'),
-        backgroundColor: AppColors.secondary,
-      ),
-    );
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
 
-    Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update outlet: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _handleRemoveOutlet() async {
+    if (widget.outletId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot delete: No outlet ID provided'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -79,13 +167,34 @@ class _EditOutletPageState extends State<EditOutletPage> {
     );
 
     if (confirmed == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Outlet removed successfully'),
-          backgroundColor: AppColors.accentError,
-        ),
-      );
-      Navigator.of(context).pop();
+      setState(() => _isLoading = true);
+
+      try {
+        await _service.deleteBranch(widget.outletId!);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Outlet removed successfully'),
+            backgroundColor: AppColors.accentError,
+          ),
+        );
+        Navigator.of(context).pop(true);
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to remove outlet: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/services/maintenance_executive_service.dart';
 import '../../../theme/app_colors.dart';
 
 class AddMEPage extends StatefulWidget {
@@ -9,6 +10,7 @@ class AddMEPage extends StatefulWidget {
 }
 
 class _AddMEPageState extends State<AddMEPage> {
+  final MaintenanceExecutiveService _service = MaintenanceExecutiveService();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -25,23 +27,56 @@ class _AddMEPageState extends State<AddMEPage> {
   }
 
   Future<void> _handleAddME() async {
+    // Validate inputs
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await _service.createMaintenanceExecutive(
+        name: '$firstName $lastName',
+        email: email,
+        phone: phone.isNotEmpty ? phone : null,
+        password: 'default123', // You might want to add a password field
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ME added successfully'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ME added successfully'),
-        backgroundColor: AppColors.secondary,
-      ),
-    );
-
-    Navigator.of(context).pop();
+      Navigator.of(context).pop(true); // Return true to indicate success
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add ME: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
