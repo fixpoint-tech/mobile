@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/services/branch_service.dart';
 import '../../../theme/app_colors.dart';
 
 class AddOutletPage extends StatefulWidget {
@@ -9,6 +10,7 @@ class AddOutletPage extends StatefulWidget {
 }
 
 class _AddOutletPageState extends State<AddOutletPage> {
+  final BranchService _service = BranchService();
   final TextEditingController _outletNameController = TextEditingController();
   final TextEditingController _cityNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -25,23 +27,52 @@ class _AddOutletPageState extends State<AddOutletPage> {
   }
 
   Future<void> _handleAddOutlet() async {
+    // Validate inputs
+    final outletName = _outletNameController.text.trim();
+    final address = _addressController.text.trim();
+
+    if (outletName.isEmpty || address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await _service.createBranch(
+        name: outletName,
+        location: address,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Outlet added successfully'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Outlet added successfully'),
-        backgroundColor: AppColors.secondary,
-      ),
-    );
-
-    Navigator.of(context).pop();
+      Navigator.of(context).pop(true); // Return true to indicate success
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add outlet: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override

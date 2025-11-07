@@ -4,9 +4,9 @@
 class ApiConfig {
   // TODO: Replace this with your actual backend URL
   // Examples:
-  // - Local development: 'http://localhost:3000/api/v1'
+  // - Local development: 'http://localhost:5000/api/v1'
   // - Production: 'https://api.yourdomain.com/api/v1'
-  static const String baseUrl = 'http://localhost:3000/api/v1';
+  static const String baseUrl = 'http://localhost:5000/api/v1';
   
   // API endpoints
   static const String issuesEndpoint = '/issues';
