@@ -1,34 +1,94 @@
 import 'package:flutter/material.dart';
+import '../../../core/models/maintenance_executive.dart';
+import '../../../core/services/maintenance_executive_service.dart';
 import '../../user/view/edit_me_page.dart';
 
-class MEsTabContent extends StatelessWidget {
+class MEsTabContent extends StatefulWidget {
   const MEsTabContent({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const data = [
-      {'name': 'Induwara Ranasinghe', 'meta': 'Maintenance Executive'},
-      {'name': 'Chamath Perera', 'meta': 'Maintenance Executive'},
-    ];
+  State<MEsTabContent> createState() => _MEsTabContentState();
+}
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      itemCount: data.length,
-      itemBuilder: (_, i) {
-        final m = data[i];
-        return _personCard(
-          context: context,
-          name: m['name']!,
-          subtitle: m['meta']!,
-        );
-      },
+class _MEsTabContentState extends State<MEsTabContent> {
+  final MaintenanceExecutiveService _service = MaintenanceExecutiveService();
+  List<MaintenanceExecutive> _mes = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMEs();
+  }
+
+  Future<void> _loadMEs() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final mes = await _service.getAllMaintenanceExecutives();
+      setState(() {
+        _mes = mes;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error: $_errorMessage'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadMEs,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_mes.isEmpty) {
+      return const Center(
+        child: Text('No Maintenance Executives found'),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadMEs,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+        itemCount: _mes.length,
+        itemBuilder: (_, i) {
+          final me = _mes[i];
+          return _personCard(
+            context: context,
+            me: me,
+          );
+        },
+      ),
     );
   }
 
   Widget _personCard({
     required BuildContext context,
-    required String name,
-    required String subtitle,
+    required MaintenanceExecutive me,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -46,10 +106,15 @@ class MEsTabContent extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 22,
-            backgroundColor: Color(0xFF50B6DC),
-            child: Icon(Icons.person, color: Colors.white),
+            backgroundColor: const Color(0xFF66BB6A),
+            backgroundImage: me.profilePicture != null
+                ? NetworkImage(me.profilePicture!)
+                : null,
+            child: me.profilePicture == null
+                ? const Icon(Icons.person, color: Colors.white)
+                : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -57,7 +122,7 @@ class MEsTabContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  me.name,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -66,7 +131,7 @@ class MEsTabContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
+                  me.displaySubtitle,
                   style: const TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],
@@ -78,7 +143,10 @@ class MEsTabContent extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => EditMEPage(meName: name),
+                  builder: (context) => EditMEPage(
+                    meId: me.id,
+                    meName: me.name,
+                  ),
                 ),
               );
             },

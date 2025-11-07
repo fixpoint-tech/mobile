@@ -1,26 +1,31 @@
 import 'package:flutter/material.dart';
+import '../../../core/models/maintenance_executive.dart';
+import '../../../core/services/maintenance_executive_service.dart';
 import '../../../theme/app_colors.dart';
 
 class EditMEPage extends StatefulWidget {
+  final int? meId;
   final String? meName;
 
-  const EditMEPage({super.key, this.meName});
+  const EditMEPage({super.key, this.meId, this.meName});
 
   @override
   State<EditMEPage> createState() => _EditMEPageState();
 }
 
 class _EditMEPageState extends State<EditMEPage> {
+  final MaintenanceExecutiveService _service = MaintenanceExecutiveService();
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
   bool _isLoading = false;
+  bool _isLoadingData = false;
+  MaintenanceExecutive? _me;
 
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with existing data if available
     final nameParts = widget.meName?.split(' ') ?? ['', ''];
     _firstNameController = TextEditingController(
       text: nameParts.isNotEmpty ? nameParts[0] : '',
@@ -30,6 +35,38 @@ class _EditMEPageState extends State<EditMEPage> {
     );
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
+
+    if (widget.meId != null) {
+      _loadMEData();
+    }
+  }
+
+  Future<void> _loadMEData() async {
+    setState(() => _isLoadingData = true);
+
+    try {
+      final me = await _service.getMaintenanceExecutiveById(widget.meId!);
+      setState(() {
+        _me = me;
+        final nameParts = me.name.split(' ');
+        _firstNameController.text = nameParts.isNotEmpty ? nameParts[0] : '';
+        _lastNameController.text =
+            nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+        _phoneController.text = me.phone ?? '';
+        _emailController.text = me.email;
+        _isLoadingData = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingData = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load ME data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -42,26 +79,78 @@ class _EditMEPageState extends State<EditMEPage> {
   }
 
   Future<void> _handleUpdateProfile() async {
+    if (widget.meId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot update: No ME ID provided'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      await _service.updateMaintenanceExecutive(
+        id: widget.meId!,
+        name: '$firstName $lastName',
+        email: email,
+        phone: phone.isNotEmpty ? phone : null,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ME profile updated successfully'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ME profile updated successfully'),
-        backgroundColor: AppColors.secondary,
-      ),
-    );
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
 
-    Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update ME: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _handleDeleteUser() async {
+    if (widget.meId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot delete: No ME ID provided'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -84,13 +173,34 @@ class _EditMEPageState extends State<EditMEPage> {
     );
 
     if (confirmed == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ME deleted successfully'),
-          backgroundColor: AppColors.accentError,
-        ),
-      );
-      Navigator.of(context).pop();
+      setState(() => _isLoading = true);
+
+      try {
+        await _service.deleteMaintenanceExecutive(widget.meId!);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ME deleted successfully'),
+            backgroundColor: AppColors.accentError,
+          ),
+        );
+        Navigator.of(context).pop(true);
+      } catch (e) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete ME: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
