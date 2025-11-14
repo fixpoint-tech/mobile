@@ -48,6 +48,26 @@ class ProfileController extends ChangeNotifier {
 
     try {
       _currentUser = await _repository.getCurrentUser();
+
+      // Pre-fill form fields with current user data
+      if (_currentUser != null) {
+        final nameParts = _currentUser!.fullName.split(' ');
+        firstNameController.text = nameParts.isNotEmpty ? nameParts.first : '';
+        lastNameController.text = nameParts.length > 1
+            ? nameParts.skip(1).join(' ')
+            : '';
+        // Prefill phone if available
+        if (_currentUser!.phone != null) {
+          phoneController.text = _currentUser!.phone!;
+        }
+
+        // If the extra field for this role represents Email, prefill it from the user
+        if (extraFieldLabel.toLowerCase() == 'email' &&
+            _currentUser!.email != null) {
+          extraFieldController.text = _currentUser!.email!;
+        }
+      }
+
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Failed to load user: $e';

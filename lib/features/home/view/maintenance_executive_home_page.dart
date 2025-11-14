@@ -12,12 +12,16 @@ class MaintenanceExecutiveHomePage extends StatefulWidget {
   const MaintenanceExecutiveHomePage({super.key});
 
   @override
-  State<MaintenanceExecutiveHomePage> createState() => _MaintenanceExecutiveHomePageState();
+  State<MaintenanceExecutiveHomePage> createState() =>
+      _MaintenanceExecutiveHomePageState();
 }
 
-class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomePage> {
+class _MaintenanceExecutiveHomePageState
+    extends State<MaintenanceExecutiveHomePage> {
   final IssueController _issueController = IssueController();
-  final PageController _pageController = PageController(initialPage: 1); // Start at In Progress
+  final PageController _pageController = PageController(
+    initialPage: 1,
+  ); // Start at In Progress
   int _currentPageIndex = 1;
 
   @override
@@ -54,7 +58,7 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
             userName: 'Induwara Ranasinghe',
             userRole: 'Maintenance Executive',
             onNotificationTap: () {
-              // Handle notifications
+              Navigator.of(context).pushNamed('/notifications');
             },
           ),
 
@@ -68,7 +72,11 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
                   label: 'Open',
                   isSelected: _currentPageIndex == 0,
                   onTap: () {
-                    _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    _pageController.animateToPage(
+                      0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
                   },
                 ),
                 const SizedBox(width: 8),
@@ -76,7 +84,11 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
                   label: 'In Progress',
                   isSelected: _currentPageIndex == 1,
                   onTap: () {
-                    _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    _pageController.animateToPage(
+                      1,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
                   },
                 ),
                 const SizedBox(width: 8),
@@ -84,7 +96,11 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
                   label: 'Done',
                   isSelected: _currentPageIndex == 2,
                   onTap: () {
-                    _pageController.animateToPage(2, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    _pageController.animateToPage(
+                      2,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
                   },
                 ),
               ],
@@ -98,7 +114,11 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
               onPageChanged: (index) {
                 setState(() {
                   _currentPageIndex = index;
-                  final statuses = [IssueStatus.open, IssueStatus.inProgress, IssueStatus.done];
+                  final statuses = [
+                    IssueStatus.open,
+                    IssueStatus.inProgress,
+                    IssueStatus.done,
+                  ];
                   _issueController.setFilter(statuses[index]);
                 });
               },
@@ -125,8 +145,10 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
     return ListenableBuilder(
       listenable: _issueController,
       builder: (context, _) {
-        final issues = _issueController.issues.where((issue) => issue.status == status).toList();
-        
+        final issues = _issueController.issues
+            .where((issue) => issue.status == status)
+            .toList();
+
         if (issues.isEmpty) {
           return Center(
             child: Padding(
@@ -171,10 +193,12 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
   Future<void> _onLongPressIssue(IssueModel issue) async {
     // Maintenance executive may delete only issues they created/assigned to them
     final currentUserId = AuthService.instance.currentUser?.id;
-    final canDelete = (currentUserId != null) && (
-      (issue.maintenanceExecutiveId != null && issue.maintenanceExecutiveId == currentUserId) ||
-      (issue.maintenanceExecutive?.user != null && issue.maintenanceExecutive!.user!.id == currentUserId)
-    );
+    final canDelete =
+        (currentUserId != null) &&
+        ((issue.maintenanceExecutiveId != null &&
+                issue.maintenanceExecutiveId == currentUserId) ||
+            (issue.maintenanceExecutive?.user != null &&
+                issue.maintenanceExecutive!.user!.id == currentUserId));
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -182,8 +206,14 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
         title: const Text('Delete issue?'),
         content: const Text('This action will permanently delete the issue.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -192,16 +222,28 @@ class _MaintenanceExecutiveHomePageState extends State<MaintenanceExecutiveHomeP
 
     if (!canDelete) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('You do not have permission to delete this issue.'), backgroundColor: AppColors.primary),
+        SnackBar(
+          content: const Text(
+            'You do not have permission to delete this issue.',
+          ),
+          backgroundColor: AppColors.primary,
+        ),
       );
       return;
     }
 
     try {
       await _issueController.deleteIssue(issue.id);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Issue deleted')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Issue deleted')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete issue: $e'), backgroundColor: AppColors.primary));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete issue: $e'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
     }
   }
 }

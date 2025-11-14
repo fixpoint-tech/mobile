@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../theme/app_colors.dart';
 import '../controller/profile_controller.dart';
-import '../data/user_repository.dart';
+import '../data/api_user_repository.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -19,7 +19,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    _controller = ProfileController(repository: MockUserRepository());
+    // Use real API repository
+    _controller = ProfileController(repository: ApiUserRepository());
     _controller.addListener(_onControllerUpdate);
   }
 

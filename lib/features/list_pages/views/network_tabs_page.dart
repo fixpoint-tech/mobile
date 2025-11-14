@@ -27,12 +27,12 @@ class NetworkTabsPage extends StatefulWidget {
 class _NetworkTabsPageState extends State<NetworkTabsPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tab;
-  
+
   // Services for fetching counts
   final BranchManagerService _branchManagerService = BranchManagerService();
   final BranchService _branchService = BranchService();
   final MaintenanceExecutiveService _meService = MaintenanceExecutiveService();
-  
+
   // Dynamic counts
   int _gdmCount = 0;
   int _gpmCount = 0;
@@ -81,7 +81,7 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
       final branchManagers = await _branchManagerService.getAllBranchManagers();
       final outlets = await _branchService.getAllBranches();
       final mes = await _meService.getAllMaintenanceExecutives();
-      
+
       setState(() {
         _gdmCount = branchManagers.where((bm) => bm.branchId == null).length;
         _gpmCount = branchManagers.where((bm) => bm.branchId != null).length;
@@ -291,7 +291,9 @@ class _Header extends StatelessWidget {
             icon: const Icon(Icons.notifications), // filled bell like Figma
             color: Colors.black, // solid black
             iconSize: 22,
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).pushNamed('/notifications');
+            },
             tooltip: 'Notifications',
           ),
         ],

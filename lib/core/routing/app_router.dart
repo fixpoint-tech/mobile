@@ -9,14 +9,14 @@ import '../../features/tickets/view/reported_issues_page.dart';
 import '../../features/chat/view/pages/chat_box.dart';
 import '../../features/profile/view/user_profile_page.dart';
 import '../../features/profile/view/edit_profile_page.dart';
-import '../../features/profile/data/user_repository.dart';
+import '../../features/profile/data/api_user_repository.dart';
 import '../../core/models/app_user.dart';
 import '../../features/home/view/branch_manager_home_page.dart';
 import '../../features/home/view/maintenance_executive_home_page.dart';
 import '../../features/home/view/technician_home_page.dart';
 import '../../features/list_pages/views/network_tabs_page.dart';
-import '../../features/profile/view/about_page.dart';
 import '../../features/profile/view/help_support_page.dart';
+import '../../features/notifications/view/notifications_page.dart';
 
 class RouteNames {
   static const String splash = '/';
@@ -28,15 +28,13 @@ class RouteNames {
   static const String chat = '/chat';
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
-  static const String about = '/about';
   static const String helpSupport = '/help';
   static const String branchManagerHome = '/branch-manager-home';
   static const String maintenanceExecutiveHome = '/maintenance-executive-home';
   static const String technicianHome = '/technician-home';
   static const String reportNewIssue = '/report-new-issue';
   static const String reportedIssues = '/reported-issues';
-
-  // ✅ Added new route names for list pages
+  static const String notifications = '/notifications';
   static const String gdms = '/gdms';
   static const String gpms = '/gpms';
   static const String outlets = '/outlets';
@@ -53,7 +51,7 @@ class AppRouter {
     RouteNames.tickets: (context) => const TicketListPage(),
     RouteNames.chat: (context) => const ChatPage(),
     RouteNames.profile: (context) => FutureBuilder<AppUser>(
-      future: MockUserRepository().getCurrentUser(),
+      future: ApiUserRepository().getCurrentUser(),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
@@ -70,6 +68,66 @@ class AppRouter {
           fullName: user.fullName,
           subtitle: user.roleTitle,
           handle: '@${user.fullName.toLowerCase().split(' ').first}',
+          email: user.email,
+          phone: user.phone,
+          onLogout: () async {
+            // Show confirmation dialog
+            final shouldLogout = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                  ),
+                ),
+                content: const Text(
+                  'Are you sure you want to logout?',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF999999),
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text(
+                      'Logout',
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFE53935),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+
+            if (shouldLogout == true && context.mounted) {
+              // Clear any stored data (you can add SharedPreferences/SecureStorage here)
+              // TODO: Clear auth tokens, user data, etc.
+
+              // Navigate to login and clear navigation stack
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil(RouteNames.login, (route) => false);
+            }
+          },
         );
       },
     ),
@@ -87,11 +145,13 @@ class AppRouter {
     RouteNames.outlets: (context) => const NetworkTabsPage(initialIndex: 2),
     RouteNames.mes: (context) => const NetworkTabsPage(initialIndex: 3),
 
-    // About page
-    RouteNames.about: (context) => const AboutPage(),
+    // About page removed
 
     // Help & Support page
     RouteNames.helpSupport: (context) => const HelpSupportPage(),
+
+    // Notifications page
+    RouteNames.notifications: (context) => const NotificationsPage(),
   };
 
   /// Handles undefined routes.
