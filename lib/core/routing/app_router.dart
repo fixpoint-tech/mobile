@@ -16,6 +16,7 @@ import '../../features/home/view/maintenance_executive_home_page.dart';
 import '../../features/home/view/technician_home_page.dart';
 import '../../features/list_pages/views/network_tabs_page.dart';
 import '../../features/profile/view/help_support_page.dart';
+import '../../features/notifications/view/notifications_page.dart';
 
 class RouteNames {
   static const String splash = '/';
@@ -27,15 +28,13 @@ class RouteNames {
   static const String chat = '/chat';
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
-  // About page removed
   static const String helpSupport = '/help';
   static const String branchManagerHome = '/branch-manager-home';
   static const String maintenanceExecutiveHome = '/maintenance-executive-home';
   static const String technicianHome = '/technician-home';
   static const String reportNewIssue = '/report-new-issue';
   static const String reportedIssues = '/reported-issues';
-
-  // ✅ Added new route names for list pages
+  static const String notifications = '/notifications';
   static const String gdms = '/gdms';
   static const String gpms = '/gpms';
   static const String outlets = '/outlets';
@@ -150,6 +149,9 @@ class AppRouter {
 
     // Help & Support page
     RouteNames.helpSupport: (context) => const HelpSupportPage(),
+
+    // Notifications page
+    RouteNames.notifications: (context) => const NotificationsPage(),
   };
 
   /// Handles undefined routes.

@@ -50,10 +50,10 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
         children: [
           // User Header
           UserHeader(
-            userName: 'John Doe',
+            userName: 'Kamal Perera',
             userRole: 'Technician',
             onNotificationTap: () {
-              // Handle notifications
+              Navigator.of(context).pushNamed('/notifications');
             },
           ),
 
@@ -67,7 +67,11 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
                   label: 'Open',
                   isSelected: _currentPageIndex == 0,
                   onTap: () {
-                    _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    _pageController.animateToPage(
+                      0,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
                   },
                 ),
                 const SizedBox(width: 8),
@@ -75,7 +79,11 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
                   label: 'In Progress',
                   isSelected: _currentPageIndex == 1,
                   onTap: () {
-                    _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    _pageController.animateToPage(
+                      1,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
                   },
                 ),
                 const SizedBox(width: 8),
@@ -83,7 +91,11 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
                   label: 'Done',
                   isSelected: _currentPageIndex == 2,
                   onTap: () {
-                    _pageController.animateToPage(2, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    _pageController.animateToPage(
+                      2,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
                   },
                 ),
               ],
@@ -97,7 +109,11 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
               onPageChanged: (index) {
                 setState(() {
                   _currentPageIndex = index;
-                  final statuses = [IssueStatus.open, IssueStatus.inProgress, IssueStatus.done];
+                  final statuses = [
+                    IssueStatus.open,
+                    IssueStatus.inProgress,
+                    IssueStatus.done,
+                  ];
                   _issueController.setFilter(statuses[index]);
                 });
               },
@@ -120,8 +136,10 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
     return ListenableBuilder(
       listenable: _issueController,
       builder: (context, _) {
-        final issues = _issueController.issues.where((issue) => issue.status == status).toList();
-        
+        final issues = _issueController.issues
+            .where((issue) => issue.status == status)
+            .toList();
+
         if (issues.isEmpty) {
           return Center(
             child: Padding(

@@ -51,7 +51,9 @@ class UserProfilePage extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, size: 20),
           color: const Color(0xFF292A2D),
-          onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+          onPressed:
+              onBack ??
+              () => Navigator.of(context).pushReplacementNamed('/home'),
         ),
       ),
       backgroundColor: const Color(0xFFF8FDFF),
