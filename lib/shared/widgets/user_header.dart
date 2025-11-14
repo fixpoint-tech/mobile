@@ -37,8 +37,8 @@ class UserHeader extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(userName, style: AppTypography.userName),
-                Text(userRole, style: AppTypography.userRole),
+                Text(userName, style: AppTextStyles.userName),
+                Text(userRole, style: AppTextStyles.userRole),
               ],
             ),
             const Spacer(),

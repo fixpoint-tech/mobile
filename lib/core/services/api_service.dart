@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import '../services/auth_service.dart';
 
 /// API Service for making HTTP requests to the backend
 class ApiService {
@@ -13,10 +14,23 @@ class ApiService {
   String get baseUrl => ApiConfig.baseUrl;
   
   // Common headers
-  Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  };
+  Map<String, String> get _headers {
+    // Start with base headers
+    final base = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    // Merge auth headers if available
+    try {
+      final auth = AuthService.instance.getAuthHeaders();
+      base.addAll(auth);
+    } catch (_) {
+      // ignore
+    }
+
+    return base;
+  }
 
   /// GET request
   Future<Map<String, dynamic>> get(String endpoint) async {

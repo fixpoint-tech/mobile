@@ -62,7 +62,7 @@ class IssueCard extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              Flexible(child: Text(issue.title, style: AppTypography.heading3)),
+              Flexible(child: Text(issue.title, style: AppTextStyles.heading3)),
               if (showCriticalBell) ...[
                 const SizedBox(width: 6),
                 const Icon(
@@ -89,14 +89,14 @@ class IssueCard extends StatelessWidget {
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(badgeText, style: AppTypography.badge),
+      child: Text(badgeText, style: AppTextStyles.badge),
     );
   }
 
   Widget _buildDescription() {
     return Text(
       issue.description ?? 'No description provided',
-      style: AppTypography.bodySmall.copyWith(height: 1.4),
+      style: AppTextStyles.bodySmall.copyWith(height: 1.4),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
@@ -110,7 +110,7 @@ class IssueCard extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           issue.branch?.name ?? 'Unknown Branch',
-          style: AppTypography.caption.copyWith(color: AppColors.secondary),
+          style: AppTextStyles.caption.copyWith(color: AppColors.secondary),
         ),
         const SizedBox(width: 16),
 
@@ -119,7 +119,7 @@ class IssueCard extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           _getTimeAgo(issue.createdAt),
-          style: AppTypography.caption.copyWith(color: AppColors.secondary),
+          style: AppTextStyles.caption.copyWith(color: AppColors.secondary),
         ),
         const Spacer(),
 

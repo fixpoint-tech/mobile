@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../tickets/controller/issue_controller.dart';
+import '../../../core/services/auth_service.dart';
 import '../../tickets/model/issue_model.dart';
 import '../../../shared/widgets/user_header.dart';
 import '../../../shared/widgets/status_filter_chip.dart';
@@ -16,15 +17,22 @@ class BranchManagerHomePage extends StatefulWidget {
 
 class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
   final IssueController _issueController = IssueController();
+  final PageController _pageController = PageController(initialPage: 1); // Start at In Progress
+  int _currentPageIndex = 1;
   // int _selectedNavIndex = 0; // Commented out since nav items are commented
 
   @override
   void initState() {
     super.initState();
+    _issueController.setFilter(IssueStatus.inProgress); // Start at In Progress
     _issueController.refreshIssues();
   }
 
-  // Don't dispose singleton controller
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
   // @override
   // void dispose() {
   //   _issueController.dispose();
@@ -63,59 +71,74 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
                         // Report Issue Card
                         _buildReportIssueCard(),
                         const SizedBox(height: 24),
-
+                        
                         // Recent Issues Title
-                        Text(
+                        const Text(
                           'Recent Issues',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textTitle,
+                            color: Colors.black87,
                           ),
                         ),
                         const SizedBox(height: 16),
-
-                        // Filter Chips
+                        
+                        // Filter Chips (tap to jump to page OR swipe pages)
                         Row(
                           children: [
                             StatusFilterChip(
                               label: 'Open',
-                              isSelected:
-                                  _issueController.selectedFilter ==
-                                  IssueStatus.open,
-                              onTap: () =>
-                                  _issueController.setFilter(IssueStatus.open),
+                              isSelected: _currentPageIndex == 0,
+                              onTap: () {
+                                _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                              },
                             ),
                             const SizedBox(width: 8),
                             StatusFilterChip(
                               label: 'In Progress',
-                              isSelected:
-                                  _issueController.selectedFilter ==
-                                  IssueStatus.inProgress,
-                              onTap: () => _issueController.setFilter(
-                                IssueStatus.inProgress,
-                              ),
+                              isSelected: _currentPageIndex == 1,
+                              onTap: () {
+                                _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                              },
                             ),
                             const SizedBox(width: 8),
                             StatusFilterChip(
                               label: 'Done',
-                              isSelected:
-                                  _issueController.selectedFilter ==
-                                  IssueStatus.done,
-                              onTap: () =>
-                                  _issueController.setFilter(IssueStatus.done),
+                              isSelected: _currentPageIndex == 2,
+                              onTap: () {
+                                _pageController.animateToPage(2, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                              },
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-
-                        // Issue List based on filter
-                        _buildFilteredIssueList(),
                       ],
                     ),
                   ),
                 );
               },
+            ),
+          ),
+
+          // Swipeable PageView for the 3 status sections
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPageIndex = index;
+                  final statuses = [IssueStatus.open, IssueStatus.inProgress, IssueStatus.done];
+                  _issueController.setFilter(statuses[index]);
+                });
+              },
+              children: [
+                // Page 1: Open Issues
+                _buildIssueListPage(IssueStatus.open),
+                // Page 2: In Progress Issues
+                _buildIssueListPage(IssueStatus.inProgress),
+                // Page 3: Done Issues
+                _buildIssueListPage(IssueStatus.done),
+              ],
             ),
           ),
         ],
@@ -136,7 +159,10 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+          colors: [
+            Color(0xFF4FC3F7),
+            Color(0xFF29B6F6),
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -150,13 +176,13 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
               const Text(
                 'Found a problem',
                 style: TextStyle(
-                  color: AppColors.white,
+                  color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.more_vert, color: AppColors.white),
+                icon: const Icon(Icons.more_vert, color: Colors.white),
                 onPressed: () {
                   // Show menu options
                 },
@@ -168,7 +194,11 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
           const SizedBox(height: 8),
           const Text(
             'Report the maintenance need\nhere.',
-            style: TextStyle(color: AppColors.white, fontSize: 14, height: 1.5),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
@@ -177,12 +207,15 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
               Navigator.pushNamed(context, '/report-new-issue');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.white,
+              backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF4FC3F7),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -198,37 +231,96 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
     );
   }
 
-  Widget _buildFilteredIssueList() {
-    final filteredIssues = _issueController.filteredIssues;
+  Widget _buildIssueListPage(IssueStatus status) {
+    return ListenableBuilder(
+      listenable: _issueController,
+      builder: (context, _) {
+        final issues = _issueController.issues.where((issue) => issue.status == status).toList();
+        
+        if (issues.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No ${status.value.toLowerCase()} issues',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-    if (filteredIssues.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(32.0),
-          child: Text(
-            'No issues found',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-          ),
-        ),
-      );
-    }
-
-    // All issues use the same IssueCard widget
-    // Show critical bell icon only for "Open" issues with "Critical" status
-    return Column(
-      children: filteredIssues.map((issue) {
-        final isOpenAndCritical =
-            _issueController.selectedFilter == IssueStatus.open;
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: IssueCard(
-            issue: issue,
-            showCriticalBell: isOpenAndCritical,
-            criticality: isOpenAndCritical ? 'Critical' : 'General',
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: issues.map((issue) {
+              final isOpenAndCritical = status == IssueStatus.open;
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: GestureDetector(
+                  onLongPress: () => _onLongPressIssue(issue),
+                  child: IssueCard(
+                    issue: issue,
+                    showCriticalBell: isOpenAndCritical,
+                    criticality: isOpenAndCritical ? 'Critical' : 'General',
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         );
-      }).toList(),
+      },
     );
+  }
+
+  Future<void> _onLongPressIssue(IssueModel issue) async {
+    // Branch Manager may delete only issues they created (managerId)
+  final currentUserId = AuthService.instance.currentUser?.id;
+  final canDelete = (currentUserId != null && issue.managerId == currentUserId);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete issue?'),
+        content: const Text('This action will permanently delete the issue.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    if (!canDelete) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('You do not have permission to delete this issue.'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      return;
+    }
+
+    try {
+      await _issueController.deleteIssue(issue.id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Issue deleted')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete issue: $e'), backgroundColor: AppColors.primary),
+      );
+    }
   }
 }
