@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../core/models/branch_manager.dart';
 import '../../../core/services/branch_manager_service.dart';
 import '../../../theme/app_colors.dart';
+import '../../../shared/widgets/custom_text_field.dart';
+import '../../../shared/widgets/custom_button.dart';
+import '../../../shared/widgets/delete_button.dart';
 
 class EditGPMDetailsPage extends StatefulWidget {
   final int? gpmId;
@@ -337,19 +340,19 @@ class _EditGPMDetailsPageState extends State<EditGPMDetailsPage> {
                 const SizedBox(height: 32),
 
                 // Input fields
-                _FilledField(
+                CustomTextField(
                   controller: _firstNameController,
                   hintText: 'First name',
                 ),
                 const SizedBox(height: 12),
 
-                _FilledField(
+                CustomTextField(
                   controller: _lastNameController,
                   hintText: 'Last name',
                 ),
                 const SizedBox(height: 12),
 
-                _FilledField(
+                CustomTextField(
                   controller: _phoneController,
                   hintText: 'Phone number',
                   prefix: Container(
@@ -373,17 +376,17 @@ class _EditGPMDetailsPageState extends State<EditGPMDetailsPage> {
                 ),
                 const SizedBox(height: 12),
 
-                _FilledField(controller: _emailController, hintText: 'Email'),
+                CustomTextField(controller: _emailController, hintText: 'Email'),
 
                 const SizedBox(height: 24),
 
                 // Delete User button
-                _DeleteButton(onPressed: _handleDeleteUser),
+                DeleteButton(onPressed: _handleDeleteUser, label: 'Delete User'),
 
                 const SizedBox(height: 16),
 
                 // Update Profile button
-                _GradientButton(
+                CustomButton(
                   onPressed: _isLoading ? null : _handleUpdateProfile,
                   child: _isLoading
                       ? const SizedBox(
@@ -410,143 +413,6 @@ class _EditGPMDetailsPageState extends State<EditGPMDetailsPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Rounded, filled input field
-class _FilledField extends StatelessWidget {
-  const _FilledField({
-    required this.controller,
-    required this.hintText,
-    this.prefix,
-  });
-
-  final TextEditingController controller;
-  final String hintText;
-  final Widget? prefix;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 45,
-      decoration: BoxDecoration(
-        color: AppColors.primary100,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Prefix badge (optional)
-          if (prefix != null) ...[
-            Padding(padding: const EdgeInsets.only(right: 10), child: prefix),
-          ],
-
-          // The editable text
-          Expanded(
-            child: TextField(
-              controller: controller,
-              style: const TextStyle(
-                fontSize: 12,
-                fontFamily: 'Outfit',
-                fontWeight: FontWeight.w400,
-                color: AppColors.textTitle,
-              ),
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                  fontFamily: 'Outfit',
-                  fontWeight: FontWeight.w400,
-                ),
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-                border: InputBorder.none,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Delete button
-class _DeleteButton extends StatelessWidget {
-  const _DeleteButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 41,
-      decoration: BoxDecoration(
-        color: AppColors.accentError.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          minimumSize: const Size.fromHeight(41),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-        ),
-        icon: const Icon(
-          Icons.delete_outline,
-          color: AppColors.accentError,
-          size: 18,
-        ),
-        label: const Text(
-          'Delete User',
-          style: TextStyle(
-            fontFamily: 'Outfit',
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-            color: AppColors.accentError,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Update Profile button
-class _GradientButton extends StatelessWidget {
-  const _GradientButton({required this.child, this.onPressed});
-
-  final Widget child;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 41,
-      decoration: BoxDecoration(
-        color: AppColors.secondary,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          minimumSize: const Size.fromHeight(41),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-        ),
-        child: child,
       ),
     );
   }
