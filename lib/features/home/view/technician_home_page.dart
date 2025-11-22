@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../tickets/controller/issue_controller.dart';
+import '../../../core/services/auth_service.dart';
 import '../../tickets/model/issue_model.dart';
 import '../../../shared/widgets/user_header.dart';
 import '../../../shared/widgets/status_filter_chip.dart';
@@ -50,8 +51,10 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
         children: [
           // User Header
           UserHeader(
-            userName: 'Kamal Perera',
-            userRole: 'Technician',
+            userName: AuthService.instance.currentUser?.name ?? 'User',
+            userRole: AuthService.instance.currentUser?.role == 'technician'
+                ? 'Technician'
+                : 'Unknown Role',
             onNotificationTap: () {
               Navigator.of(context).pushNamed('/notifications');
             },
