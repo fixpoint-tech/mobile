@@ -203,4 +203,55 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
+
+  /// Register new user with email, password, name, and role
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    required String name,
+    required String role,
+  }) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/auth/register');
+    try {
+      final resp = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: json.encode({
+              'email': email,
+              'password': password,
+              'name': name,
+              'role': role,
+            }),
+          )
+          .timeout(ApiConfig.timeout);
+
+      final body = json.decode(resp.body) as Map<String, dynamic>;
+
+      if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        final token = body['token'] as String?;
+        final userJson = body['data'] as Map<String, dynamic>?;
+
+        if (token != null && userJson != null) {
+          _token = token;
+          _currentUser = UserProfile.fromJson(userJson);
+          await _saveCredentials();
+          notifyListeners();
+          return {'success': true, 'message': body['message'] ?? 'Registration successful'};
+        }
+      }
+
+      // Return error message from server
+      return {
+        'success': false,
+        'message': body['message'] ?? 'Registration failed. Please try again.'
+      };
+    } catch (e) {
+      debugPrint('Registration error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
 }
