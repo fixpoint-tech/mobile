@@ -11,6 +11,7 @@ import '../../features/profile/view/user_profile_page.dart';
 import '../../features/profile/view/edit_profile_page.dart';
 import '../../features/profile/data/api_user_repository.dart';
 import '../../core/models/app_user.dart';
+import '../../core/services/auth_service.dart';
 import '../../features/home/view/branch_manager_home_page.dart';
 import '../../features/home/view/maintenance_executive_home_page.dart';
 import '../../features/home/view/technician_home_page.dart';
@@ -44,7 +45,33 @@ class RouteNames {
 class AppRouter {
   static final Map<String, WidgetBuilder> routes = {
     RouteNames.splash: (context) => const SplashScreen(),
-    RouteNames.home: (context) => const MaintenanceExecutiveHomePage(),
+    RouteNames.home: (context) {
+      // Route to appropriate home page based on user role
+      final authService = AuthService.instance;
+      final userRole = authService.currentUser?.role;
+
+      if (userRole == null) {
+        // Not authenticated, redirect to login
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(context).pushReplacementNamed(RouteNames.login);
+        });
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      // Route based on role
+      switch (userRole) {
+        case 'technician':
+          return const TechnicianHomePage();
+        case 'branch_manager':
+          return const BranchManagerHomePage();
+        case 'maintenance_executive':
+          return const MaintenanceExecutiveHomePage();
+        default:
+          return const MaintenanceExecutiveHomePage();
+      }
+    },
     RouteNames.login: (context) => const LoginPage(),
     RouteNames.signup: (context) => const SignUpPage(),
     RouteNames.forgotPassword: (context) => const ForgotPasswordPage(),
@@ -118,8 +145,8 @@ class AppRouter {
             );
 
             if (shouldLogout == true && context.mounted) {
-              // Clear any stored data (you can add SharedPreferences/SecureStorage here)
-              // TODO: Clear auth tokens, user data, etc.
+              // Clear authentication state
+              await AuthService.instance.clearAuth();
 
               // Navigate to login and clear navigation stack
               Navigator.of(

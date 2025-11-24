@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../theme/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,6 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,10 +25,44 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Implement login logic
-      Navigator.pushNamed(context, '/home');
+      setState(() => _isLoading = true);
+
+      try {
+        final authService = AuthService.instance;
+        final success = await authService.login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        if (!mounted) return;
+
+        if (success) {
+          // Navigate to home on successful login
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Invalid email or password'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -298,24 +334,35 @@ class _LoginPageState extends State<LoginPage> {
                         Container(
                           height: 41,
                           decoration: BoxDecoration(
-                            color: AppColors.secondary,
+                            color: _isLoading
+                                ? AppColors.secondary.withOpacity(0.7)
+                                : AppColors.secondary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: _handleLogin,
+                              onTap: _isLoading ? null : _handleLogin,
                               borderRadius: BorderRadius.circular(10),
                               child: Center(
-                                child: Text(
-                                  'Next',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w400,
-                                    color: Colors.white,
-                                    height: 1.26,
-                                  ),
-                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : Text(
+                                        'Next',
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w400,
+                                          color: Colors.white,
+                                          height: 1.26,
+                                        ),
+                                      ),
                               ),
                             ),
                           ),

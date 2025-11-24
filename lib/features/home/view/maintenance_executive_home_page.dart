@@ -58,8 +58,10 @@ class _MaintenanceExecutiveHomePageState
         children: [
           // User Header
           UserHeader(
-            userName: 'Induwara Ranasinghe',
-            userRole: 'Maintenance Executive',
+            userName: AuthService.instance.currentUser?.name ?? 'User',
+            userRole: AuthService.instance.currentUser?.role == 'maintenance_executive'
+                ? 'Maintenance Executive'
+                : 'Unknown Role',
             onNotificationTap: () {
               Navigator.of(context).pushNamed('/notifications');
             },

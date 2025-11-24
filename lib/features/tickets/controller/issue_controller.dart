@@ -45,6 +45,7 @@ class IssueController extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      notifyListeners();
     }
   }
 

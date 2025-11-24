@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'core/routing/app_router.dart';
+import 'core/services/auth_service.dart';
 import 'theme/app_colors.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Initialize auth service to load stored credentials
+  await AuthService.instance.initialize();
   runApp(const MyApp());
 }
 

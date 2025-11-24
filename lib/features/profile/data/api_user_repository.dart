@@ -2,34 +2,40 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../core/config/api_config.dart';
 import '../../../core/models/app_user.dart';
+import '../../../core/services/auth_service.dart';
 import 'user_repository.dart';
 
 /// Real API implementation of UserRepository
 /// Connects to the backend to fetch and update user profile data
 class ApiUserRepository implements UserRepository {
   final http.Client _client;
+  final AuthService _authService;
 
-  // TODO: Replace with actual authentication logic
-  // For now, using hardcoded user ID and role
-  static const String _currentUserId = '1'; // Get this from auth service
-  static const String _currentUserRole =
-      'technician'; // Get this from auth service
-
-  ApiUserRepository({http.Client? client}) : _client = client ?? http.Client();
+  ApiUserRepository({
+    http.Client? client,
+    AuthService? authService,
+  })  : _client = client ?? http.Client(),
+        _authService = authService ?? AuthService.instance;
 
   /// Get the current user's profile from the backend
+  @override
   Future<AppUser> getCurrentUser() async {
     try {
-      // Use general users endpoint so we can fetch any role's profile
-      final url = Uri.parse('${ApiConfig.baseUrl}/users/$_currentUserId');
+      // Fetch current user from auth service
+      final userProfile = await _authService.fetchCurrentUser();
+
+      if (userProfile == null) {
+        throw Exception('Not authenticated');
+      }
+
+      // Use general users endpoint with the authenticated user's ID
+      final url =
+          Uri.parse('${ApiConfig.baseUrl}/users/${userProfile.id}');
 
       final response = await _client
           .get(
             url,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            headers: _authService.getAuthHeaders(),
           )
           .timeout(ApiConfig.timeout);
 
@@ -44,6 +50,10 @@ class ApiUserRepository implements UserRepository {
         }
       } else if (response.statusCode == 404) {
         throw Exception('User not found');
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        // Clear auth on authentication errors
+        await _authService.clearAuth();
+        throw Exception('Authentication failed');
       } else {
         final error = jsonDecode(response.body);
         throw Exception(error['message'] ?? 'Failed to fetch user');
@@ -55,6 +65,7 @@ class ApiUserRepository implements UserRepository {
   }
 
   /// Update the current user's profile
+  @override
   Future<void> updateProfile({
     required String userId,
     String? firstName,
@@ -64,7 +75,12 @@ class ApiUserRepository implements UserRepository {
     String? extraField,
   }) async {
     try {
-      final endpoint = _getRoleEndpoint(_currentUserRole);
+      final userProfile = _authService.currentUser;
+      if (userProfile == null) {
+        throw Exception('Not authenticated');
+      }
+
+      final endpoint = _getRoleEndpoint(userProfile.role);
       final url = Uri.parse('${ApiConfig.baseUrl}$endpoint/$userId');
 
       // Build request body
@@ -90,7 +106,7 @@ class ApiUserRepository implements UserRepository {
 
       // Handle role-specific extra fields
       if (extraField != null && extraField.isNotEmpty) {
-        switch (_currentUserRole) {
+        switch (userProfile.role) {
           case 'technician':
             // Technicians might have specialization or employeeId
             body['specialization'] = extraField;
@@ -114,10 +130,7 @@ class ApiUserRepository implements UserRepository {
       final response = await _client
           .put(
             url,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            headers: _authService.getAuthHeaders(),
             body: jsonEncode(body),
           )
           .timeout(ApiConfig.timeout);
@@ -139,6 +152,9 @@ class ApiUserRepository implements UserRepository {
         } else {
           throw Exception(error['message'] ?? 'Invalid data provided');
         }
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        await _authService.clearAuth();
+        throw Exception('Authentication failed');
       } else if (response.statusCode == 404) {
         throw Exception('User not found');
       } else {
@@ -185,14 +201,17 @@ class ApiUserRepository implements UserRepository {
 
     // Extract role-specific profile if present
     Map<String, dynamic>? profileData;
-    if (data['technicianProfile'] != null)
+    if (data['technicianProfile'] != null) {
       profileData = Map<String, dynamic>.from(data['technicianProfile']);
-    if (data['branchManagerProfile'] != null)
+    }
+    if (data['branchManagerProfile'] != null) {
       profileData = Map<String, dynamic>.from(data['branchManagerProfile']);
-    if (data['maintenanceExecutiveProfile'] != null)
+    }
+    if (data['maintenanceExecutiveProfile'] != null) {
       profileData = Map<String, dynamic>.from(
         data['maintenanceExecutiveProfile'],
       );
+    }
 
     return AppUser(
       id: id,
