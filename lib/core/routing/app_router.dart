@@ -49,7 +49,6 @@ class AppRouter {
     RouteNames.signup: (context) => const SignUpPage(),
     RouteNames.forgotPassword: (context) => const ForgotPasswordPage(),
     RouteNames.tickets: (context) => const TicketListPage(),
-    RouteNames.chat: (context) => const ChatPage(),
     RouteNames.profile: (context) => FutureBuilder<AppUser>(
       future: ApiUserRepository().getCurrentUser(),
       builder: (context, snapshot) {
@@ -160,6 +159,12 @@ class AppRouter {
   }
 
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
+    if (settings.name == RouteNames.chat) {
+      return MaterialPageRoute(
+        builder: (context) => const ChatPage(),
+        settings: settings,
+      );
+    }
     final builder = routes[settings.name];
     if (builder != null) {
       return MaterialPageRoute(builder: builder, settings: settings);

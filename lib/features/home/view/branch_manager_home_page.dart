@@ -7,6 +7,8 @@ import '../../../shared/widgets/status_filter_chip.dart';
 import '../../../shared/widgets/issue_card.dart';
 import '../../../shared/widgets/custom_bottom_navigation.dart';
 import '../../../theme/app_colors.dart';
+import '../../tickets/service/issue_api_service.dart';
+import '../../chat/view/pages/chat_box.dart';
 
 class BranchManagerHomePage extends StatefulWidget {
   const BranchManagerHomePage({super.key});
@@ -17,6 +19,7 @@ class BranchManagerHomePage extends StatefulWidget {
 
 class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
   final IssueController _issueController = IssueController();
+  final IssueApiService _issueApiService = IssueApiService();
   final PageController _pageController = PageController(initialPage: 1); // Start at In Progress
   int _currentPageIndex = 1;
   // int _selectedNavIndex = 0; // Commented out since nav items are commented
@@ -268,11 +271,13 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: GestureDetector(
+                  onTap: () => _onTapIssue(issue),
                   onLongPress: () => _onLongPressIssue(issue),
                   child: IssueCard(
                     issue: issue,
                     showCriticalBell: isOpenAndCritical,
                     criticality: isOpenAndCritical ? 'Critical' : 'General',
+                    onTap: () => _onTapIssue(issue),
                   ),
                 ),
               );
@@ -281,6 +286,34 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
         );
       },
     );
+  }
+
+  Future<void> _onTapIssue(IssueModel issue) async {
+    try {
+      // Show a loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+
+      final detailedIssue = await _issueApiService.getIssueById(issue.id);
+      
+      Navigator.pop(context); // Dismiss the loading indicator
+
+      Navigator.pushNamed(
+        context,
+        ChatPage.routeName,
+        arguments: detailedIssue,
+      );
+    } catch (e) {
+      Navigator.pop(context); // Dismiss the loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load issue details: ${e.toString()}')),
+      );
+    }
   }
 
   Future<void> _onLongPressIssue(IssueModel issue) async {

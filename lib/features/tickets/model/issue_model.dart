@@ -14,6 +14,10 @@ class IssueModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   
+  // Relation arrays
+  final List<MessageModel>? messages;
+  final List<PettyCashRequestModel>? pettyCashRequests;
+
   // Optional relation objects (when include_relations=true)
   final BranchInfo? branch;
   final ManagerInfo? manager;
@@ -36,6 +40,8 @@ class IssueModel {
     this.thirdPartyAssignedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.messages,
+    this.pettyCashRequests,
     this.branch,
     this.manager,
     this.technician,
@@ -65,6 +71,12 @@ class IssueModel {
           : null,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      messages: (json['messages'] as List<dynamic>?)
+          ?.map((x) => MessageModel.fromJson(x as Map<String, dynamic>))
+          .toList(),
+      pettyCashRequests: (json['pettyCashRequests'] as List<dynamic>?)
+          ?.map((x) => PettyCashRequestModel.fromJson(x as Map<String, dynamic>))
+          .toList(),
       branch: json['branch'] != null ? BranchInfo.fromJson(json['branch']) : null,
       manager: json['manager'] != null ? ManagerInfo.fromJson(json['manager']) : null,
       technician: json['technician'] != null ? TechnicianInfo.fromJson(json['technician']) : null,
@@ -109,6 +121,8 @@ class IssueModel {
     DateTime? thirdPartyAssignedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    List<MessageModel>? messages,
+    List<PettyCashRequestModel>? pettyCashRequests,
     BranchInfo? branch,
     ManagerInfo? manager,
     TechnicianInfo? technician,
@@ -130,6 +144,8 @@ class IssueModel {
       thirdPartyAssignedAt: thirdPartyAssignedAt ?? this.thirdPartyAssignedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      messages: messages ?? this.messages,
+      pettyCashRequests: pettyCashRequests ?? this.pettyCashRequests,
       branch: branch ?? this.branch,
       manager: manager ?? this.manager,
       technician: technician ?? this.technician,
@@ -235,6 +251,69 @@ class ThirdPartyInfo {
       organization: json['organization'] as String,
       email: json['email'] as String,
       worktype: json['worktype'] as String?,
+    );
+  }
+}
+
+class PettyCashRequestModel {
+  final String id;
+  final int technicianId;
+  final String amount;
+  final String description;
+  final String status;
+  final DateTime createdAt;
+
+  PettyCashRequestModel({
+    required this.id,
+    required this.technicianId,
+    required this.amount,
+    required this.description,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory PettyCashRequestModel.fromJson(Map<String, dynamic> json) {
+    return PettyCashRequestModel(
+      id: json['id'] as String,
+      technicianId: json['technician_id'] as int,
+      amount: json['amount'] as String,
+      description: json['description'] as String,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
+}
+
+class MessageModel {
+  final int id;
+  final String body;
+  final int senderId;
+  final int? receiverId;
+  final DateTime createdAt;
+  final UserInfo sender;
+  final UserInfo? receiver;
+
+  MessageModel({
+    required this.id,
+    required this.body,
+    required this.senderId,
+    this.receiverId,
+    required this.createdAt,
+    required this.sender,
+    this.receiver,
+  });
+
+  factory MessageModel.fromJson(Map<String, dynamic> json) {
+    return MessageModel(
+      id: json['id'] as int,
+      body: json['body'] as String,
+      senderId: json['sender_id'] as int,
+      receiverId: json['receiver_id'] as int?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      sender: UserInfo.fromJson(json['sender'] as Map<String, dynamic>),
+      receiver: json['receiver'] != null
+          ? UserInfo.fromJson(json['receiver'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

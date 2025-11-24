@@ -20,21 +20,23 @@ class _MessageInputFieldState extends State<MessageInputField> {
     switch (widget.role) {
       case UserRole.branchManager: // GDM
         actions = const [
-          'Assign a Technician',
-          'Get Outside Support',
           'Close Issue',
         ];
         break;
       case UserRole.executive:
         actions = const [
           'Update the Status',
-          'Suggest Outside Support',
-          'Request Petty Cash',
+          'Assign a Technician',
+          'Get Outside Support',
           'Close Issue',
         ];
         break;
       case UserRole.technician: // GPM: no options
-        actions = const [];
+        actions = const [
+          'Suggest Outside Support',
+          'Request Petty Cash',
+          'Update the Status',
+        ];
         break;
     }
 
