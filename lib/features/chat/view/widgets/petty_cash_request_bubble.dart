@@ -132,14 +132,14 @@ class PettyCashRequestBubble extends StatelessWidget {
                     Row(
                       children: [
                         Flexible(
-                          flex: 3,
+                          flex: 4,
                           child: OutlinedButton(
                             onPressed: onClose,
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF727272),
+                              backgroundColor: const Color(0xFFFF7489),
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                                horizontal: 4,
                                 vertical: 10,
                               ),
                               minimumSize: const Size(0, 36),
@@ -149,9 +149,12 @@ class PettyCashRequestBubble extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(5),
                               ),
                             ),
-                            child: const Text(
-                              'Close',
-                              style: TextStyle(fontSize: 14),
+                            child: const FittedBox(
+                              child: Text(
+                                'Reject',
+                                style: TextStyle(fontSize: 14),
+                                maxLines: 1,
+                              ),
                             ),
                           ),
                         ),

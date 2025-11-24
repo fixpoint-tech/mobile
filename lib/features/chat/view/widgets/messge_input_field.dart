@@ -12,6 +12,24 @@ class MessageInputField extends StatefulWidget {
 
 class _MessageInputFieldState extends State<MessageInputField> {
   bool showActions = false;
+  bool showSendOptions = false;
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage(String senderRole) {
+    if (_controller.text.trim().isEmpty) return;
+    // ignore: avoid_print
+    print('Sending message as $senderRole: ${_controller.text}');
+    _controller.clear();
+    setState(() {
+      showSendOptions = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +49,7 @@ class _MessageInputFieldState extends State<MessageInputField> {
           'Close Issue',
         ];
         break;
-      case UserRole.technician: // GPM: no options
+      case UserRole.technician:
         actions = const [
           'Suggest Outside Support',
           'Request Petty Cash',
@@ -42,6 +60,9 @@ class _MessageInputFieldState extends State<MessageInputField> {
 
     final bool hasActions = actions.isNotEmpty;
     final bool displayActions = hasActions && showActions;
+    final bool displaySendOptions = widget.role == UserRole.executive &&
+        showSendOptions &&
+        _controller.text.isNotEmpty;
 
     return SafeArea(
       child: Padding(
@@ -55,6 +76,16 @@ class _MessageInputFieldState extends State<MessageInputField> {
               children: [
                 Expanded(
                   child: TextField(
+                    controller: _controller,
+                    onChanged: (value) {
+                      if (value.isEmpty && showSendOptions) {
+                        setState(() => showSendOptions = false);
+                      } else if (value.isNotEmpty && !showSendOptions) {
+                         // Optional: auto-show or just let user tap send?
+                         // User said "by taping send button", so don't auto-show.
+                         setState(() {}); // Rebuild to update displaySendOptions check
+                      }
+                    },
                     decoration: InputDecoration(
                       hintText: 'Type a message',
                       filled: true,
@@ -75,7 +106,19 @@ class _MessageInputFieldState extends State<MessageInputField> {
                   shape: const CircleBorder(),
                   child: IconButton(
                     icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: () {},
+                    onPressed: () {
+                      if (_controller.text.trim().isEmpty) return;
+
+                      if (widget.role == UserRole.executive) {
+                        setState(() {
+                          showSendOptions = !showSendOptions;
+                          if (showSendOptions) showActions = false;
+                        });
+                      } else {
+                        // For other roles, send directly (e.g. to Executive)
+                        _sendMessage('Executive');
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -93,7 +136,10 @@ class _MessageInputFieldState extends State<MessageInputField> {
                     ),
                     onTap: () {
                       if (!hasActions) return;
-                      setState(() => showActions = !showActions);
+                      setState(() {
+                        showActions = !showActions;
+                        if (showActions) showSendOptions = false;
+                      });
                     },
                     child: SizedBox(
                       width: 48,
@@ -124,7 +170,40 @@ class _MessageInputFieldState extends State<MessageInputField> {
                   ],
                 ),
               ),
+            if (displaySendOptions)
+              Positioned(
+                right: 54, // Aligned with send button
+                bottom: 56,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    senderChip('GPM'),
+                    const SizedBox(height: 6),
+                    senderChip('GDM'),
+                  ],
+                ),
+              ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget senderChip(String text) {
+    return GestureDetector(
+      onTap: () => _sendMessage(text),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF3EA8D0),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );

@@ -28,15 +28,32 @@ class ChatPage extends StatelessWidget {
       );
     }
 
-    const meAvatarUrl = 'https://i.pravatar.cc/100?img=3';
-    const meId = 'u_me';
-
     // Assume this comes from saved login details.
     final myRole = UserRole.executive;
 
-    final participants = <String, Map<String, String?>>{
-      meId: {'name': 'You', 'avatarUrl': meAvatarUrl, 'userId': 'me'},
-    };
+    // Identify the current user's ID to determine 'isMe'
+    // In a real app, this ID would come from your AuthProvider/UserSession
+    String? currentUserId;
+    if (myRole == UserRole.technician) {
+      currentUserId = issue.technician?.user?.id.toString();
+    } else if (myRole == UserRole.branchManager) {
+      currentUserId = issue.manager?.user?.id.toString();
+    } else if (myRole == UserRole.executive) {
+      currentUserId = issue.maintenanceExecutive?.user?.id.toString();
+    }
+    // Fallback if not found (e.g. testing or user not assigned yet)
+    currentUserId ??= 'me';
+
+    final participants = <String, Map<String, String?>>{};
+
+    // If we are in a test mode where ID is 'me', add the placeholder
+    if (currentUserId == 'me') {
+      participants['u_me'] = {
+        'name': 'You',
+        'avatarUrl': 'https://i.pravatar.cc/100?img=3',
+        'userId': 'me'
+      };
+    }
 
     // Populate participants from issue data
     if (issue.manager?.user != null) {
@@ -67,6 +84,7 @@ class ChatPage extends StatelessWidget {
     // Add the main issue ticket
     chatItems.add({
       'type': 'ticket',
+      'createdAt': issue.createdAt,
       'title': issue.title,
       'description': issue.description ?? 'No description provided.',
       'branch': issue.branch?.name ?? 'Unknown Branch',
@@ -84,6 +102,7 @@ class ChatPage extends StatelessWidget {
     if (issue.technicianAssignedAt != null) {
       chatItems.add({
         'type': 'assignment',
+        'createdAt': issue.technicianAssignedAt,
         'title': 'Technician Assigned',
         'technicianName': issue.technician?.user?.name ?? 'Technician',
         'timeText':
@@ -96,6 +115,7 @@ class ChatPage extends StatelessWidget {
     if (issue.maintenanceExecutiveAssignedAt != null) {
       chatItems.add({
         'type': 'assignment',
+        'createdAt': issue.maintenanceExecutiveAssignedAt,
         'title': 'Maintenance Executive Assigned',
         'technicianName': issue.maintenanceExecutive?.user?.name ?? 'Maintenance Executive',
         'timeText':
@@ -108,6 +128,7 @@ class ChatPage extends StatelessWidget {
     if (issue.thirdPartyAssignedAt != null) {
       chatItems.add({
         'type': 'assignment',
+        'createdAt': issue.thirdPartyAssignedAt,
         'title': 'Third Party Assigned',
         'technicianName': issue.thirdParty?.organization ?? 'Third Party',
         'timeText':
@@ -120,6 +141,16 @@ class ChatPage extends StatelessWidget {
     // Add messages from the issue
     if (issue.messages != null) {
       for (final message in issue.messages!) {
+        // Filter messages for non-executive roles
+        if (myRole != UserRole.executive) {
+          final msgSenderId = message.sender.id.toString();
+          final msgReceiverId = message.receiver?.id.toString();
+          // Only show if I am the sender or the receiver
+          if (msgSenderId != currentUserId && msgReceiverId != currentUserId) {
+            continue;
+          }
+        }
+
         // Find or create participant key for sender
         final senderIdStr = message.sender.id.toString();
         final senderKey = participants.keys.firstWhere(
@@ -154,6 +185,7 @@ class ChatPage extends StatelessWidget {
 
         chatItems.add({
           'type': 'text',
+          'createdAt': message.createdAt,
           'text': message.body,
           'time':
               '${message.createdAt.hour}:${message.createdAt.minute.toString().padLeft(2, '0')} ${message.createdAt.hour < 12 ? 'AM' : 'PM'}',
@@ -168,6 +200,7 @@ class ChatPage extends StatelessWidget {
       for (final request in issue.pettyCashRequests!) {
         chatItems.add({
           'type': 'petty_cash',
+          'createdAt': request.createdAt,
           'amount': 'Rs. ${request.amount}',
           'timeText':
               '${request.createdAt.hour}:${request.createdAt.minute.toString().padLeft(2, '0')} ${request.createdAt.hour < 12 ? 'AM' : 'PM'}',
@@ -179,9 +212,15 @@ class ChatPage extends StatelessWidget {
       }
     }
 
-    // Sort items by time - assuming all have a 'time' or 'timeText' like field
-    // This part is tricky because the data models are different.
-    // For now, we'll just display them in the order they are added.
+    // Sort items by time
+    chatItems.sort((a, b) {
+      final dateA = a['createdAt'] as DateTime?;
+      final dateB = b['createdAt'] as DateTime?;
+      if (dateA == null && dateB == null) return 0;
+      if (dateA == null) return -1;
+      if (dateB == null) return 1;
+      return dateA.compareTo(dateB);
+    });
 
     final managerKey = 'u_mgr_${issue.managerId}';
     final managerAvatar = participants[managerKey]?['avatarUrl'];
@@ -330,15 +369,31 @@ class ChatPage extends StatelessWidget {
                     );
                   }
 
-                  final isMe = it['senderId'] == meId;
-                  final sender = participants[it['senderId']];
-                  final receiver = participants[it['receiverId']];
-                  final meAvatar = participants[meId]!['avatarUrl'];
-                  final otherId = isMe
-                      ? it['receiverId'] as String
-                      : it['senderId'] as String;
-                  final otherAvatar =
-                      participants[otherId] != null ? participants[otherId]!['avatarUrl'] : null;
+                  final senderIdKey = it['senderId'] as String;
+                  final receiverIdKey = it['receiverId'] as String?;
+
+                  // Check if the sender is the current logged-in user
+                  final senderData = participants[senderIdKey];
+                  final senderUserId = senderData?['userId'];
+                  final isMe = senderUserId == currentUserId;
+
+                  final sender = participants[senderIdKey];
+                  final receiver =
+                      receiverIdKey != null ? participants[receiverIdKey] : null;
+
+                  // Determine whose avatar to show (the other person)
+                  final otherIdKey = isMe ? receiverIdKey : senderIdKey;
+                  final otherAvatar = otherIdKey != null &&
+                          participants[otherIdKey] != null
+                      ? participants[otherIdKey]!['avatarUrl']
+                      : null;
+
+                  // For "me" avatar, we try to find our own entry
+                  // (though MessageBubble usually doesn't show my avatar, just my text on right)
+                  final meEntry = participants.entries
+                      .where((e) => e.value['userId'] == currentUserId)
+                      .firstOrNull;
+                  final meAvatar = meEntry?.value['avatarUrl'];
 
                   return MessageBubble(
                     isMe: isMe,
