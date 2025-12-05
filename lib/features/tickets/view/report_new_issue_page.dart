@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../controller/issue_controller.dart';
 import '../model/issue_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/user_service.dart';
+import '../../../core/services/upload_service.dart';
 
 class ReportNewIssuePage extends StatefulWidget {
   const ReportNewIssuePage({super.key});
@@ -17,14 +20,17 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   String _selectedIssueType = 'Critical'; // Critical or General
   late DateTime _selectedDate; // Initialize with current date
   MaintenanceExecutive? _selectedExecutive;
-  final List<String> _uploadedFiles = [];
+  final List<File> _selectedFiles = []; // Real file objects
+  final List<UploadedFile> _uploadedFiles = []; // Uploaded file info from server
   final TextEditingController _taskNameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final IssueController _issueController = IssueController();
+  final ImagePicker _imagePicker = ImagePicker();
   
   // Dynamic data from backend
   List<MaintenanceExecutive> _executives = [];
   bool _isLoadingExecutives = false;
+  bool _isUploadingFiles = false;
 
   @override
   void initState() {
@@ -195,26 +201,87 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                   // Upload file
                   _buildSectionLabel('Upload file'),
                   const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: _uploadFile,
-                    icon: const Icon(Icons.upload_file, size: 18),
-                    label: const Text('Upload'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4FC3F7),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _uploadFile,
+                        icon: const Icon(Icons.add_photo_alternate, size: 18),
+                        label: const Text('Add Photo'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4FC3F7),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          elevation: 0,
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      elevation: 0,
-                    ),
+                      if (_selectedFiles.isNotEmpty && !_isUploadingFiles) ...[
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: _uploadSelectedFiles,
+                          icon: const Icon(Icons.cloud_upload, size: 18),
+                          label: Text('Upload (${_selectedFiles.length})'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+                  // Show uploading indicator
+                  if (_isUploadingFiles) ...[
+                    const SizedBox(height: 12),
+                    const Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 8),
+                        Text('Uploading files...', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                  // Show selected files (pending upload) with thumbnails
+                  if (_selectedFiles.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Pending Upload:',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _selectedFiles.asMap().entries.map((entry) {
+                        return _buildSelectedFileThumbnail(entry.key, entry.value);
+                      }).toList(),
+                    ),
+                  ],
+                  // Show uploaded files
                   if (_uploadedFiles.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    ..._uploadedFiles.map((file) => _buildFileChip(file)),
+                    const Text(
+                      'Uploaded:',
+                      style: TextStyle(fontSize: 12, color: Colors.green),
+                    ),
+                    const SizedBox(height: 8),
+                    ..._uploadedFiles.map((file) => _buildUploadedFileChip(file)),
                   ],
                   const SizedBox(height: 20),
 
@@ -324,30 +391,103 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
     );
   }
 
-  Widget _buildFileChip(String fileName) {
+  /// Build thumbnail for selected file (pending upload)
+  Widget _buildSelectedFileThumbnail(int index, File file) {
+    return Stack(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.file(
+              file,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.image, color: Colors.grey),
+                );
+              },
+            ),
+          ),
+        ),
+        Positioned(
+          top: -4,
+          right: -4,
+          child: GestureDetector(
+            onTap: () => _removeFile(index),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close,
+                size: 12,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Build chip for uploaded file
+  Widget _buildUploadedFileChip(UploadedFile uploadedFile) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.green[50],
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green[200]!),
       ),
       child: Row(
         children: [
-          const Icon(Icons.insert_drive_file, size: 16, color: Colors.grey),
+          const Icon(Icons.check_circle, size: 16, color: Colors.green),
           const SizedBox(width: 8),
-          Expanded(child: Text(fileName, style: const TextStyle(fontSize: 12))),
+          Expanded(
+            child: Text(
+              uploadedFile.originalName,
+              style: const TextStyle(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            _formatFileSize(uploadedFile.size),
+            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+          ),
+          const SizedBox(width: 8),
           GestureDetector(
-            onTap: () {
-              setState(() {
-                _uploadedFiles.remove(fileName);
-              });
+            onTap: () async {
+              try {
+                await UploadService.instance.deleteFile(uploadedFile.url);
+                setState(() {
+                  _uploadedFiles.remove(uploadedFile);
+                });
+              } catch (e) {
+                // Ignore delete errors
+              }
             },
             child: const Icon(Icons.close, size: 16, color: Colors.grey),
           ),
         ],
       ),
     );
+  }
+
+  /// Format file size for display
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   Widget _buildExecutiveChip(String name) {
@@ -404,10 +544,133 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   }
 
   void _uploadFile() {
-    // Simulate file upload
+    // Show options to pick from camera or gallery
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Add Attachment',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.camera_alt, color: AppColors.primary),
+                ),
+                title: const Text('Take Photo'),
+                subtitle: const Text('Use camera to capture'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.photo_library, color: AppColors.primary),
+                ),
+                title: const Text('Choose from Gallery'),
+                subtitle: const Text('Select existing photos'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      // Check file limit
+      if (_selectedFiles.length >= 5) {
+        _showErrorDialog('Maximum 5 files allowed');
+        return;
+      }
+
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null && mounted) {
+        setState(() {
+          _selectedFiles.add(File(pickedFile.path));
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorDialog('Failed to pick image: ${e.toString()}');
+      }
+    }
+  }
+
+  void _removeFile(int index) {
     setState(() {
-      _uploadedFiles.add('IMG0${_uploadedFiles.length + 1}291.jpeg');
+      _selectedFiles.removeAt(index);
     });
+  }
+
+  Future<void> _uploadSelectedFiles() async {
+    if (_selectedFiles.isEmpty) return;
+
+    setState(() {
+      _isUploadingFiles = true;
+    });
+
+    try {
+      final uploaded = await UploadService.instance.uploadMultipleFiles(_selectedFiles);
+      if (mounted) {
+        setState(() {
+          _uploadedFiles.addAll(uploaded);
+          _selectedFiles.clear();
+          _isUploadingFiles = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isUploadingFiles = false;
+        });
+        _showErrorDialog('Failed to upload files: ${e.toString()}');
+      }
+    }
   }
 
   void _selectExecutive() {
