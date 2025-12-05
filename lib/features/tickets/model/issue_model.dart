@@ -176,14 +176,16 @@ class UserInfo {
   final int id;
   final String name;
   final String email;
+  final String? profilePicture;
 
-  UserInfo({required this.id, required this.name, required this.email});
+  UserInfo({required this.id, required this.name, required this.email, this.profilePicture});
 
   factory UserInfo.fromJson(Map<String, dynamic> json) {
     return UserInfo(
       id: json['id'] as int,
       name: json['name'] as String,
       email: json['email'] as String,
+      profilePicture: json['profilePicture'] as String?,
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../controller/issue_controller.dart';
 import '../model/issue_model.dart';
 import '../../../theme/app_colors.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/user_service.dart';
 
 class ReportNewIssuePage extends StatefulWidget {
   const ReportNewIssuePage({super.key});
@@ -13,12 +15,45 @@ class ReportNewIssuePage extends StatefulWidget {
 
 class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   String _selectedIssueType = 'Critical'; // Critical or General
-  DateTime? _selectedDate;
-  String? _selectedExecutive;
+  late DateTime _selectedDate; // Initialize with current date
+  MaintenanceExecutive? _selectedExecutive;
   final List<String> _uploadedFiles = [];
   final TextEditingController _taskNameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final IssueController _issueController = IssueController();
+  
+  // Dynamic data from backend
+  List<MaintenanceExecutive> _executives = [];
+  bool _isLoadingExecutives = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime.now(); // Use current date as default
+    _loadExecutives();
+  }
+
+  Future<void> _loadExecutives() async {
+    setState(() {
+      _isLoadingExecutives = true;
+    });
+    
+    try {
+      final executives = await UserService.instance.getMaintenanceExecutives();
+      if (mounted) {
+        setState(() {
+          _executives = executives;
+          _isLoadingExecutives = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingExecutives = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -98,11 +133,9 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            _selectedDate != null
-                                ? DateFormat(
-                                    'MMMM dd, yyyy\nhh:mm a',
-                                  ).format(_selectedDate!)
-                                : 'September 29, 2025\n09:00 AM',
+                            DateFormat(
+                              'MMMM dd, yyyy\nhh:mm a',
+                            ).format(_selectedDate),
                             style: const TextStyle(
                               color: Colors.black87,
                               fontSize: 13,
@@ -207,7 +240,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                   ),
                   if (_selectedExecutive != null) ...[
                     const SizedBox(height: 12),
-                    _buildExecutiveChip(_selectedExecutive!),
+                    _buildExecutiveChip(_selectedExecutive!.name),
                   ],
                   const SizedBox(height: 60),
                 ],
@@ -347,14 +380,14 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   void _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
     if (picked != null && mounted) {
       final TimeOfDay? time = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.now(),
+        initialTime: TimeOfDay.fromDateTime(_selectedDate),
       );
       if (time != null && mounted) {
         setState(() {
@@ -378,7 +411,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   }
 
   void _selectExecutive() {
-    // Show dialog to select executive
+    // Show dialog to select executive from dynamic list
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -388,31 +421,55 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
           'Select Maintenance Executive',
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: const Text('Induwara Ranasinghe'),
-              onTap: () {
-                setState(() {
-                  _selectedExecutive = 'Induwara Ranasinghe';
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: const Text('John Doe'),
-              onTap: () {
-                setState(() {
-                  _selectedExecutive = 'John Doe';
-                });
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
+        content: _isLoadingExecutives
+            ? const SizedBox(
+                height: 100,
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            : _executives.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'No maintenance executives available.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: _executives.map((executive) {
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: executive.profilePicture != null
+                                ? NetworkImage(executive.profilePicture!)
+                                : null,
+                            child: executive.profilePicture == null
+                                ? const Icon(Icons.person)
+                                : null,
+                          ),
+                          title: Text(executive.name),
+                          subtitle: Text(
+                            executive.email,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _selectedExecutive = executive;
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }
@@ -430,19 +487,20 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         return;
       }
 
+      // Get current user info for branchId and managerId
+      final currentUser = AuthService.instance.currentUser;
+      
       // Create new issue
       // Note: id, createdAt, updatedAt will be set by backend
       // For now, we'll set temporary values that will be replaced
       final newIssue = IssueModel(
         id: 0, // Backend will assign the real ID
-        branchId: 1, // TODO: Get from logged-in user's branch
-        managerId: 1, // TODO: Get from logged-in branch manager
+        branchId: currentUser?.branchId ?? 1, // Use user's branch or default to 1
+        managerId: currentUser?.id ?? 1, // Use current user's ID if they are the manager
         title: _taskNameController.text.trim(),
         description: _descriptionController.text.trim(),
         status: IssueStatus.open,
-        maintenanceExecutiveId: _selectedExecutive != null
-            ? 1
-            : null, // TODO: Map executive name to ID
+        maintenanceExecutiveId: _selectedExecutive?.id, // Use selected executive's real ID
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
