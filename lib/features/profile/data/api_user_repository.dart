@@ -22,7 +22,7 @@ class ApiUserRepository implements UserRepository {
   Future<AppUser> getCurrentUser() async {
     try {
       // Fetch current user from auth service
-      final userProfile = await _authService.fetchCurrentUser();
+      final userProfile = _authService.currentUser;
 
       if (userProfile == null) {
         throw Exception('Not authenticated');

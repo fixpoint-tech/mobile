@@ -139,35 +139,6 @@ class AuthService extends ChangeNotifier {
     return headers;
   }
 
-  /// Fetch current user from backend using /auth/me
-  Future<UserProfile?> fetchCurrentUser() async {
-    if (_token == null) return null;
-
-    final uri = Uri.parse('${ApiConfig.baseUrl}/auth/me');
-    try {
-      final resp = await http
-          .get(uri, headers: getAuthHeaders())
-          .timeout(ApiConfig.timeout);
-
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        final body = json.decode(resp.body) as Map<String, dynamic>;
-        // expecting { success: true, data: { ... } }
-        final data = body['data'] as Map<String, dynamic>;
-        _currentUser = UserProfile.fromJson(data);
-        await _saveCredentials();
-        notifyListeners();
-        return _currentUser;
-      } else {
-        // treat as logout on auth failure
-        await clearAuth();
-        return null;
-      }
-    } catch (e) {
-      debugPrint('Error fetching current user: $e');
-      return null;
-    }
-  }
-
   /// Login with credentials. Expects backend to return { success:true, token, data: user }
   Future<bool> login(String email, String password) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/auth/login');

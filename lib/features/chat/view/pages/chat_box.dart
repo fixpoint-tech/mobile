@@ -5,6 +5,7 @@ import 'package:mobile/features/chat/view/widgets/messge_input_field.dart';
 import 'package:mobile/features/chat/view/widgets/ticket_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/assignment_bubble.dart';
 import 'package:mobile/features/user/model/user_role.dart'; // added
+import 'package:mobile/core/services/auth_service.dart';
 import 'package:mobile/features/chat/view/widgets/issue_closed_bubble.dart'; // added
 import 'package:mobile/features/chat/view/widgets/status_update_bubble.dart'; // added
 import 'package:mobile/features/chat/view/widgets/outside_party_suggestion_bubble.dart';
@@ -28,21 +29,45 @@ class ChatPage extends StatelessWidget {
       );
     }
 
-    // Assume this comes from saved login details.
-    final myRole = UserRole.executive;
+    // Get current user from AuthService
+    final authService = AuthService.instance;
+    final currentUser = authService.currentUser;
+
+    if (currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/login', (route) => false);
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Determine role
+    UserRole? role;
+    switch (currentUser.role) {
+      case 'technician':
+        role = UserRole.technician;
+        break;
+      case 'branch_manager':
+        role = UserRole.branchManager;
+        break;
+      case 'maintenance_executive':
+        role = UserRole.executive;
+        break;
+    }
+
+    if (role == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        authService.clearAuth();
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/login', (route) => false);
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final myRole = role;
 
     // Identify the current user's ID to determine 'isMe'
-    // In a real app, this ID would come from your AuthProvider/UserSession
-    String? currentUserId;
-    if (myRole == UserRole.technician) {
-      currentUserId = issue.technician?.user?.id.toString();
-    } else if (myRole == UserRole.branchManager) {
-      currentUserId = issue.manager?.user?.id.toString();
-    } else if (myRole == UserRole.executive) {
-      currentUserId = issue.maintenanceExecutive?.user?.id.toString();
-    }
-    // Fallback if not found (e.g. testing or user not assigned yet)
-    currentUserId ??= 'me';
+    String currentUserId = currentUser.id.toString();
 
     final participants = <String, Map<String, String?>>{};
 
