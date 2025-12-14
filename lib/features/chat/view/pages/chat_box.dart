@@ -11,14 +11,274 @@ import 'package:mobile/features/chat/view/widgets/status_update_bubble.dart'; //
 import 'package:mobile/features/chat/view/widgets/outside_party_suggestion_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/petty_cash_request_bubble.dart';
 import 'package:mobile/features/tickets/model/issue_model.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:mobile/core/config/api_config.dart';
 
-class ChatPage extends StatelessWidget {
+class ChatPage extends StatefulWidget {
   static const String routeName = '/chat';
   const ChatPage({super.key});
 
   @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  IssueModel? _issue;
+  IO.Socket? _socket;
+  final List<MessageModel> _realtimeMessages = [];
+  bool _isConnected = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_issue == null) {
+      final args = ModalRoute.of(context)?.settings.arguments as IssueModel?;
+      if (args != null) {
+        _issue = args;
+        _connectSocket();
+        _scrollToBottom();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _socket?.disconnect();
+    _socket?.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _connectSocket() {
+    if (_issue == null) return;
+
+    final authService = AuthService.instance;
+    final currentUser = authService.currentUser;
+    if (currentUser == null) return;
+
+    // Construct socket URL
+    // ApiConfig.baseUrl is like 'http://10.0.2.2:5050/api/v1'
+    // We need 'http://10.0.2.2:5050'
+    final baseUrl = ApiConfig.baseUrl.replaceAll('/api/v1', '');
+    final namespace = '/issue-${_issue!.id}';
+    final socketUrl = '$baseUrl$namespace';
+
+    print('Connecting to socket: $socketUrl');
+
+    _socket = IO.io(socketUrl, IO.OptionBuilder()
+      .setTransports(['websocket'])
+      .setAuth({
+        'userId': currentUser.id.toString(),
+        'role': currentUser.role,
+      })
+      .disableAutoConnect()
+      .build()
+    );
+
+    _socket!.connect();
+
+    _socket!.onConnect((_) {
+      print('Socket connected: ${_socket!.id}');
+      if (mounted) {
+        setState(() {
+          _isConnected = true;
+        });
+      }
+    });
+
+    _socket!.onDisconnect((_) {
+      print('Socket disconnected');
+      if (mounted) {
+        setState(() {
+          _isConnected = false;
+        });
+      }
+    });
+
+    _socket!.on('receive_message', (data) {
+      print('Received message: $data');
+      if (data is Map<String, dynamic>) {
+        final text = data['text'];
+        final senderId = int.tryParse(data['from'].toString()) ?? 0;
+        
+        // Ignore own messages as they are added optimistically
+        if (senderId == AuthService.instance.currentUser?.id) {
+          return;
+        }
+        
+        // Find sender name
+        String senderName = 'Unknown';
+        if (_issue?.manager?.user?.id == senderId) {
+          senderName = _issue!.manager!.user!.name;
+        } else if (_issue?.technician?.user?.id == senderId) {
+          senderName = _issue!.technician!.user!.name;
+        } else if (_issue?.maintenanceExecutive?.user?.id == senderId) {
+          senderName = _issue!.maintenanceExecutive!.user!.name;
+        } else if (AuthService.instance.currentUser?.id == senderId) {
+          senderName = AuthService.instance.currentUser!.name;
+        }
+        
+        final newMessage = MessageModel(
+           id: DateTime.now().millisecondsSinceEpoch,
+           body: text.toString(),
+           senderId: senderId,
+           createdAt: DateTime.now(),
+           sender: UserInfo(id: senderId, name: senderName, email: ''),
+           receiverId: null, 
+        );
+        
+        if (mounted) {
+          setState(() {
+            _realtimeMessages.add(newMessage);
+          });
+          _scrollToBottom();
+        }
+      }
+    });
+    
+    _socket!.on('issue_update', (data) {
+      print('Received issue update: $data');
+      if (data is Map<String, dynamic> && data['success'] == true) {
+        final updateData = data['data'] as Map<String, dynamic>;
+        if (mounted && _issue != null) {
+          setState(() {
+            _issue = _issue!.copyWith(
+              status: updateData['status'] != null 
+                  ? IssueStatus.fromString(updateData['status']) 
+                  : null,
+              maintenanceExecutiveId: updateData['maintenance_executive_id'],
+              technicianId: updateData['technician_id'],
+              thirdPartyId: updateData['third_party_id'],
+              maintenanceExecutiveAssignedAt: updateData['maintenance_executive_assigned_at'] != null
+                  ? DateTime.parse(updateData['maintenance_executive_assigned_at'])
+                  : null,
+              technicianAssignedAt: updateData['technician_assigned_at'] != null
+                  ? DateTime.parse(updateData['technician_assigned_at'])
+                  : null,
+              thirdPartyAssignedAt: updateData['third_party_assigned_at'] != null
+                  ? DateTime.parse(updateData['third_party_assigned_at'])
+                  : null,
+              updatedAt: updateData['updatedAt'] != null
+                  ? DateTime.parse(updateData['updatedAt'])
+                  : null,
+              maintenanceExecutive: updateData['maintenanceExecutive'] != null
+                  ? MaintenanceExecutiveInfo.fromJson(updateData['maintenanceExecutive'])
+                  : null,
+              technician: updateData['technician'] != null
+                  ? TechnicianInfo.fromJson(updateData['technician'])
+                  : null,
+              thirdParty: updateData['thirdParty'] != null
+                  ? ThirdPartyInfo.fromJson(updateData['thirdParty'])
+                  : null,
+            );
+          });
+          _scrollToBottom();
+        }
+      }
+    });
+  }
+
+  void _sendMessage(String text, String? target) {
+    if (_issue?.maintenanceExecutive == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot send message: No Maintenance Executive accepted.')),
+      );
+      return;
+    }
+
+    if (_socket == null || !_isConnected) {
+       print('Not connected');
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('Not connected to chat server')),
+       );
+       return;
+    }
+    
+    final authService = AuthService.instance;
+    final currentUser = authService.currentUser;
+    if (currentUser == null) return;
+
+    String? targetUserId;
+    if (target == 'Executive') {
+      targetUserId = _issue?.maintenanceExecutive?.user?.id.toString();
+    } else if (target == 'GPM') {
+      targetUserId = _issue?.technician?.user?.id.toString();
+    } else if (target == 'GDM') {
+      targetUserId = _issue?.manager?.user?.id.toString();
+    }
+
+    final payload = {
+      'text': text,
+      'from': currentUser.id.toString(),
+      if (targetUserId != null) 'to': targetUserId,
+    };
+
+    if (targetUserId != null) {
+       // Send to specific user room
+       _socket!.emit('send_message_to_user', [payload, targetUserId]);
+    } else {
+       // Fallback to broadcast if no specific target found or implied
+       _socket!.emit('send_message_to_all', payload);
+    }
+    
+    // Optimistic update
+    UserInfo? receiverInfo;
+    if (targetUserId != null) {
+      String receiverName = 'Unknown';
+      String receiverEmail = '';
+      
+      if (_issue?.manager?.user?.id.toString() == targetUserId) {
+        receiverName = _issue!.manager!.user!.name;
+        receiverEmail = _issue!.manager!.user!.email;
+      } else if (_issue?.technician?.user?.id.toString() == targetUserId) {
+        receiverName = _issue!.technician!.user!.name;
+        // technician user might not have email in this model structure if not loaded, but UserInfo requires it.
+        // Assuming it's available or empty string.
+        receiverEmail = _issue!.technician!.user!.email; 
+      } else if (_issue?.maintenanceExecutive?.user?.id.toString() == targetUserId) {
+        receiverName = _issue!.maintenanceExecutive!.user!.name;
+        receiverEmail = _issue!.maintenanceExecutive!.user!.email;
+      }
+      
+      receiverInfo = UserInfo(
+        id: int.parse(targetUserId), 
+        name: receiverName, 
+        email: receiverEmail
+      );
+    }
+
+    final newMessage = MessageModel(
+       id: DateTime.now().millisecondsSinceEpoch,
+       body: text,
+       senderId: currentUser.id,
+       createdAt: DateTime.now(),
+       sender: UserInfo(id: currentUser.id, name: currentUser.name, email: currentUser.email),
+       receiverId: targetUserId != null ? int.tryParse(targetUserId) : null,
+       receiver: receiverInfo,
+    );
+
+    setState(() {
+      _realtimeMessages.add(newMessage);
+    });
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final issue = ModalRoute.of(context)?.settings.arguments as IssueModel?;
+    final issue = _issue;
     // ignore: avoid_print
     print('Received issue in ChatPage: ${issue?.toJson()}');
 
@@ -141,7 +401,7 @@ class ChatPage extends StatelessWidget {
       chatItems.add({
         'type': 'assignment',
         'createdAt': issue.maintenanceExecutiveAssignedAt,
-        'title': 'Maintenance Executive Assigned',
+        'title': 'Maintenance Executive Accepted',
         'technicianName': issue.maintenanceExecutive?.user?.name ?? 'Maintenance Executive',
         'timeText':
             '${issue.maintenanceExecutiveAssignedAt!.hour}:${issue.maintenanceExecutiveAssignedAt!.minute.toString().padLeft(2, '0')} ${issue.maintenanceExecutiveAssignedAt!.hour < 12 ? 'AM' : 'PM'}',
@@ -163,15 +423,29 @@ class ChatPage extends StatelessWidget {
       });
     }
 
-    // Add messages from the issue
-    if (issue.messages != null) {
-      for (final message in issue.messages!) {
+    if (issue.status == IssueStatus.done || issue.status == IssueStatus.closed) {
+      chatItems.add({
+        'type': 'issue_closed',
+        'createdAt': issue.updatedAt,
+        'title': 'Issue Closed',
+        'description': 'The issue has been marked as ${issue.status.value}.',
+        'timeText':
+            '${issue.updatedAt.hour}:${issue.updatedAt.minute.toString().padLeft(2, '0')} ${issue.updatedAt.hour < 12 ? 'AM' : 'PM'}',
+        'creatorId': 'u_mgr_${issue.managerId}',
+        'alignRight': true,
+      });
+    }
+
+    // Add messages from the issue AND realtime messages
+    final allMessages = [...?issue.messages, ..._realtimeMessages];
+    
+    for (final message in allMessages) {
         // Filter messages for non-executive roles
         if (myRole != UserRole.executive) {
           final msgSenderId = message.sender.id.toString();
           final msgReceiverId = message.receiver?.id.toString();
-          // Only show if I am the sender or the receiver
-          if (msgSenderId != currentUserId && msgReceiverId != currentUserId) {
+          // Only show if I am the sender or the receiver OR if it is a broadcast
+          if (msgSenderId != currentUserId && msgReceiverId != currentUserId && msgReceiverId != null) {
             continue;
           }
         }
@@ -218,7 +492,6 @@ class ChatPage extends StatelessWidget {
           'receiverId': receiverKey,
         });
       }
-    }
 
     // Add petty cash requests
     if (issue.pettyCashRequests != null) {
@@ -263,6 +536,7 @@ class ChatPage extends StatelessWidget {
           children: [
             Expanded(
               child: ListView.builder(
+                controller: _scrollController,
                 padding: const EdgeInsets.all(8),
                 itemCount: chatItems.length,
                 itemBuilder: (context, i) {
@@ -425,14 +699,17 @@ class ChatPage extends StatelessWidget {
                     text: it['text'] as String,
                     time: it['time'] as String,
                     senderName: sender?['name'] ?? 'Unknown',
-                    receiverName: receiver?['name'] ?? 'Unknown',
+                    receiverName: receiver?['name'] ?? 'Everyone',
                     meAvatarUrl: meAvatar,
                     otherAvatarUrl: otherAvatar,
                   );
                 },
               ),
             ),
-            MessageInputField(role: myRole),
+            MessageInputField(
+              role: myRole,
+              onSend: _sendMessage,
+            ),
           ],
         ),
       ),
