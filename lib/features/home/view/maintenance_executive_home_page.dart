@@ -7,6 +7,8 @@ import '../../../shared/widgets/status_filter_chip.dart';
 import '../../../shared/widgets/issue_card.dart';
 import '../../../shared/widgets/custom_bottom_navigation.dart';
 import '../../../theme/app_colors.dart';
+import '../../chat/view/pages/chat_box.dart';
+import '../../tickets/service/issue_api_service.dart';
 
 class MaintenanceExecutiveHomePage extends StatefulWidget {
   const MaintenanceExecutiveHomePage({super.key});
@@ -19,6 +21,7 @@ class MaintenanceExecutiveHomePage extends StatefulWidget {
 class _MaintenanceExecutiveHomePageState
     extends State<MaintenanceExecutiveHomePage> {
   final IssueController _issueController = IssueController();
+  final IssueApiService _issueApiService = IssueApiService();
   final PageController _pageController = PageController(
     initialPage: 1,
   ); // Start at In Progress
@@ -55,8 +58,10 @@ class _MaintenanceExecutiveHomePageState
         children: [
           // User Header
           UserHeader(
-            userName: 'Induwara Ranasinghe',
-            userRole: 'Maintenance Executive',
+            userName: AuthService.instance.currentUser?.name ?? 'User',
+            userRole: AuthService.instance.currentUser?.role == 'maintenance_executive'
+                ? 'Maintenance Executive'
+                : 'Unknown Role',
             onNotificationTap: () {
               Navigator.of(context).pushNamed('/notifications');
             },
@@ -175,11 +180,13 @@ class _MaintenanceExecutiveHomePageState
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: GestureDetector(
+                  onTap: () => _onTapIssue(issue),
                   onLongPress: () => _onLongPressIssue(issue),
                   child: IssueCard(
                     issue: issue,
                     showCriticalBell: true,
                     criticality: 'Critical',
+                    onTap: () => _onTapIssue(issue),
                   ),
                 ),
               );
@@ -188,6 +195,36 @@ class _MaintenanceExecutiveHomePageState
         );
       },
     );
+  }
+
+  Future<void> _onTapIssue(IssueModel issue) async {
+    try {
+      // Show a loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+
+      final detailedIssue = await _issueApiService.getIssueById(issue.id);
+
+      print('Hello');
+
+      Navigator.pop(context); // Dismiss the loading indicator
+
+      Navigator.pushNamed(
+        context,
+        ChatPage.routeName,
+        arguments: detailedIssue,
+      );
+    } catch (e) {
+      Navigator.pop(context); // Dismiss the loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load issue details: ${e.toString()}')),
+      );
+    }
   }
 
   Future<void> _onLongPressIssue(IssueModel issue) async {

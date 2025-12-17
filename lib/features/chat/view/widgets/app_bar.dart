@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
 
 class CustomChatAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const CustomChatAppBar({super.key});
+  final String? title;
+  final String? branchName;
+  final String? branchLocation;
+  final String? avatarUrl;
+
+  const CustomChatAppBar({
+    super.key,
+    this.title,
+    this.branchName,
+    this.branchLocation,
+    this.avatarUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -43,9 +54,15 @@ class CustomChatAppBar extends StatelessWidget implements PreferredSizeWidget {
               const SizedBox(width: 12),
 
               // AVATAR
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 22,
-                backgroundColor: Color(0xFFFF7489),
+                backgroundColor: const Color(0xFFFF7489),
+                backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
+                    ? NetworkImage(avatarUrl!)
+                    : null,
+                child: (avatarUrl == null || avatarUrl!.isEmpty)
+                    ? const Icon(Icons.store, size: 20, color: Color(0xFF8AA4B8))
+                    : null,
               ),
 
               const SizedBox(width: 12),
@@ -54,18 +71,19 @@ class CustomChatAppBar extends StatelessWidget implements PreferredSizeWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text(
-                    "Pizza Oven Malfunction",
-                    style: TextStyle(
+                    title ?? 'Issue',
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
-                    "Kottawa Branch, Sri Lanka",
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                    '${branchName ?? 'Unknown Branch'}${branchLocation != null && branchLocation!.isNotEmpty ? ', ${branchLocation!}' : ''}',
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                 ],
               ),

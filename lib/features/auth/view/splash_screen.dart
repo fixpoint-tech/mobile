@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../theme/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,12 +14,21 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToLogin();
+    _checkAuthAndNavigate();
   }
 
-  Future<void> _navigateToLogin() async {
+  Future<void> _checkAuthAndNavigate() async {
     await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
+    
+    if (!mounted) return;
+
+    // Check if user is authenticated
+    final authService = AuthService.instance;
+    if (authService.isAuthenticated) {
+      // User is logged in, go to home
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      // User is not logged in, go to login
       Navigator.pushReplacementNamed(context, '/login');
     }
   }

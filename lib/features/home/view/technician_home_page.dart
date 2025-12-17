@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../tickets/controller/issue_controller.dart';
+import '../../../core/services/auth_service.dart';
 import '../../tickets/model/issue_model.dart';
+import '../../chat/view/pages/chat_box.dart';
+import '../../tickets/service/issue_api_service.dart';
 import '../../../shared/widgets/user_header.dart';
 import '../../../shared/widgets/status_filter_chip.dart';
 import '../../../shared/widgets/issue_card.dart';
@@ -16,6 +19,7 @@ class TechnicianHomePage extends StatefulWidget {
 
 class _TechnicianHomePageState extends State<TechnicianHomePage> {
   final IssueController _issueController = IssueController();
+  final IssueApiService _issueApiService = IssueApiService();
   final PageController _pageController = PageController(initialPage: 1);
   int _currentPageIndex = 1;
 
@@ -50,8 +54,10 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
         children: [
           // User Header
           UserHeader(
-            userName: 'Kamal Perera',
-            userRole: 'Technician',
+            userName: AuthService.instance.currentUser?.name ?? 'User',
+            userRole: AuthService.instance.currentUser?.role == 'technician'
+                ? 'Technician'
+                : 'Unknown Role',
             onNotificationTap: () {
               Navigator.of(context).pushNamed('/notifications');
             },
@@ -165,10 +171,14 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
             children: issues.map((issue) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: IssueCard(
-                  issue: issue,
-                  showCriticalBell: true,
-                  criticality: 'Critical',
+                child: GestureDetector(
+                  onTap: () => _onTapIssue(issue),
+                  child: IssueCard(
+                    issue: issue,
+                    showCriticalBell: true,
+                    criticality: 'Critical',
+                    onTap: () => _onTapIssue(issue),
+                  ),
                 ),
               );
             }).toList(),
@@ -176,5 +186,33 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
         );
       },
     );
+  }
+
+  Future<void> _onTapIssue(IssueModel issue) async {
+    try {
+      // Show a loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+
+      final detailedIssue = await _issueApiService.getIssueById(issue.id);
+
+      Navigator.pop(context); // Dismiss the loading indicator
+
+      Navigator.pushNamed(
+        context,
+        ChatPage.routeName,
+        arguments: detailedIssue,
+      );
+    } catch (e) {
+      Navigator.pop(context); // Dismiss the loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load issue details: ${e.toString()}')),
+      );
+    }
   }
 }

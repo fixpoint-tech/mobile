@@ -5,6 +5,9 @@ class PettyCashRequestBubble extends StatelessWidget {
   final String timeText; // e.g. "9:50 AM"
   final bool alignRight;
   final String? creatorAvatarUrl;
+  final String? creatorName;
+  final String? description;
+  final String? status;
   final VoidCallback? onClose;
   final VoidCallback? onAccept;
   final VoidCallback? onRequestCash;
@@ -15,6 +18,9 @@ class PettyCashRequestBubble extends StatelessWidget {
     required this.timeText,
     this.alignRight = false,
     this.creatorAvatarUrl,
+    this.creatorName,
+  this.description,
+  this.status,
     this.onClose,
     this.onAccept,
     this.onRequestCash,
@@ -60,6 +66,15 @@ class PettyCashRequestBubble extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      'Requested by: ${creatorName ?? 'Unknown'}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                     const Text(
                       'Requested Petty Cash',
                       style: TextStyle(
@@ -78,6 +93,20 @@ class PettyCashRequestBubble extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    if (description != null && description!.trim().isNotEmpty)
+                      Text(
+                        description!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    if (status != null && status!.trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: _buildStatusChip(status!),
+                      ),
                     const SizedBox(height: 10),
                     Row(
                       mainAxisSize: MainAxisSize.min,
@@ -103,14 +132,14 @@ class PettyCashRequestBubble extends StatelessWidget {
                     Row(
                       children: [
                         Flexible(
-                          flex: 3,
+                          flex: 4,
                           child: OutlinedButton(
                             onPressed: onClose,
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF727272),
+                              backgroundColor: const Color(0xFFFF7489),
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                                horizontal: 4,
                                 vertical: 10,
                               ),
                               minimumSize: const Size(0, 36),
@@ -120,9 +149,12 @@ class PettyCashRequestBubble extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(5),
                               ),
                             ),
-                            child: const Text(
-                              'Close',
-                              style: TextStyle(fontSize: 14),
+                            child: const FittedBox(
+                              child: Text(
+                                'Reject',
+                                style: TextStyle(fontSize: 14),
+                                maxLines: 1,
+                              ),
                             ),
                           ),
                         ),
@@ -214,6 +246,42 @@ class PettyCashRequestBubble extends StatelessWidget {
       child: (url == null || url.isEmpty)
           ? const Icon(Icons.person, size: 18, color: Color(0xFF8AA4B8))
           : null,
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    final s = status.toLowerCase();
+    Color bgColor;
+    Color textColor = Colors.black87;
+
+    if (s == 'pending') {
+      bgColor = Colors.orange.shade100;
+      textColor = Colors.orange.shade800;
+    } else if (s == 'approved' || s == 'accepted') {
+      bgColor = Colors.green.shade100;
+      textColor = Colors.green.shade800;
+    } else if (s == 'rejected' || s == 'declined') {
+      bgColor = Colors.red.shade100;
+      textColor = Colors.red.shade800;
+    } else {
+      bgColor = Colors.grey.shade200;
+      textColor = Colors.black87;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status[0].toUpperCase() + status.substring(1),
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }

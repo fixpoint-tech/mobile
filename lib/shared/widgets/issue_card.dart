@@ -9,20 +9,20 @@ class IssueCard extends StatelessWidget {
   final IssueModel issue;
   final bool showCriticalBell;
   final String? criticality;
+  final VoidCallback? onTap;
 
   const IssueCard({
     super.key,
     required this.issue,
     this.showCriticalBell = false,
     this.criticality,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, '/chat');
-      },
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white,

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../../theme/app_colors.dart';
+import '../../../core/config/api_config.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -12,7 +15,7 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  bool _isEmailSent = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -20,35 +23,80 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     super.dispose();
   }
 
-  void _handleResetPassword() {
+  Future<void> _handleResetPassword() async {
     if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Implement password reset logic
-      setState(() {
-        _isEmailSent = true;
-      });
+      setState(() => _isLoading = true);
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Password reset link sent to ${_emailController.text}',
-            style: GoogleFonts.outfit(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
+      try {
+        final uri = Uri.parse('${ApiConfig.baseUrl}/auth/forgot-password');
+        final response = await http.post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: json.encode({'email': _emailController.text.trim()}),
+        ).timeout(ApiConfig.timeout);
+
+        if (!mounted) return;
+
+        final body = json.decode(response.body) as Map<String, dynamic>;
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                body['message'] ?? 'Password reset link sent to ${_emailController.text}',
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-          ),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
+          );
 
-      // Navigate back to login after 2 seconds
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.pop(context);
+          // Navigate back to login after 2 seconds
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          });
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                body['message'] ?? 'Failed to send password reset link',
+                style: GoogleFonts.outfit(fontSize: 14),
+              ),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          );
         }
-      });
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Network error: ${e.toString()}',
+              style: GoogleFonts.outfit(fontSize: 14),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -203,10 +251,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: _isEmailSent ? null : _handleResetPassword,
+                          onTap: _isLoading ? null : _handleResetPassword,
                           borderRadius: BorderRadius.circular(10),
                           child: Center(
-                            child: _isEmailSent
+                            child: _isLoading
                                 ? Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
