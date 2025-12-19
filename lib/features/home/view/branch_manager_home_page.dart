@@ -51,105 +51,103 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
         elevation: 0,
         toolbarHeight: 0, // Remove the app bar title area
       ),
-      body: Column(
-        children: [
-          // User Header
-          UserHeader(
-            userName: AuthService.instance.currentUser?.name ?? 'User',
-            userRole: AuthService.instance.currentUser?.role == 'branch_manager'
-                ? 'Branch Manager'
-                : 'Unknown Role',
-            onNotificationTap: () {
-              Navigator.of(context).pushNamed('/notifications');
-            },
-          ),
-          const SizedBox(height: 8),
-
-          // Main Content
-          Expanded(
-            child: ListenableBuilder(
-              listenable: _issueController,
-              builder: (context, child) {
-                return SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Report Issue Card
-                        _buildReportIssueCard(),
-                        const SizedBox(height: 24),
-                        
-                        // Recent Issues Title
-                        const Text(
-                          'Recent Issues',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Filter Chips (tap to jump to page OR swipe pages)
-                        Row(
-                          children: [
-                            StatusFilterChip(
-                              label: 'Open',
-                              isSelected: _currentPageIndex == 0,
-                              onTap: () {
-                                _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            StatusFilterChip(
-                              label: 'In Progress',
-                              isSelected: _currentPageIndex == 1,
-                              onTap: () {
-                                _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            StatusFilterChip(
-                              label: 'Done',
-                              isSelected: _currentPageIndex == 2,
-                              onTap: () {
-                                _pageController.animateToPage(2, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Swipeable PageView for the 3 status sections
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentPageIndex = index;
-                  final statuses = [IssueStatus.open, IssueStatus.inProgress, IssueStatus.done];
-                  _issueController.setFilter(statuses[index]);
-                });
-              },
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverToBoxAdapter(
+            child: Column(
               children: [
-                // Page 1: Open Issues
-                _buildIssueListPage(IssueStatus.open),
-                // Page 2: In Progress Issues
-                _buildIssueListPage(IssueStatus.inProgress),
-                // Page 3: Done Issues
-                _buildIssueListPage(IssueStatus.done),
+                // User Header
+                UserHeader(
+                  userName: AuthService.instance.currentUser?.name ?? 'User',
+                  userRole: AuthService.instance.currentUser?.role == 'branch_manager'
+                      ? 'Branch Manager'
+                      : 'Unknown Role',
+                  onNotificationTap: () {
+                    Navigator.of(context).pushNamed('/notifications');
+                  },
+                ),
+                const SizedBox(height: 8),
+
+                // Main Content
+                ListenableBuilder(
+                  listenable: _issueController,
+                  builder: (context, child) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Report Issue Card
+                          _buildReportIssueCard(),
+                          const SizedBox(height: 24),
+                          
+                          // Recent Issues Title
+                          const Text(
+                            'Recent Issues',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Filter Chips (tap to jump to page OR swipe pages)
+                          Row(
+                            children: [
+                              StatusFilterChip(
+                                label: 'Open',
+                                isSelected: _currentPageIndex == 0,
+                                onTap: () {
+                                  _pageController.animateToPage(0, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              StatusFilterChip(
+                                label: 'In Progress',
+                                isSelected: _currentPageIndex == 1,
+                                onTap: () {
+                                  _pageController.animateToPage(1, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              StatusFilterChip(
+                                label: 'Done',
+                                isSelected: _currentPageIndex == 2,
+                                onTap: () {
+                                  _pageController.animateToPage(2, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),
         ],
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              _currentPageIndex = index;
+              final statuses = [IssueStatus.open, IssueStatus.inProgress, IssueStatus.done];
+              _issueController.setFilter(statuses[index]);
+            });
+          },
+          children: [
+            // Page 1: Open Issues
+            _buildIssueListPage(IssueStatus.open),
+            // Page 2: In Progress Issues
+            _buildIssueListPage(IssueStatus.inProgress),
+            // Page 3: Done Issues
+            _buildIssueListPage(IssueStatus.done),
+          ],
+        ),
       ),
       // Bottom Navigation
       bottomNavigationBar: CustomBottomNavigation(
@@ -246,48 +244,54 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
         final issues = _issueController.issues.where((issue) => issue.status == status).toList();
         
         if (issues.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No ${status.value.toLowerCase()} issues',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 16,
+          return CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No ${status.value.toLowerCase()} issues',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           );
         }
 
-        return SingleChildScrollView(
+        return ListView.builder(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            children: issues.map((issue) {
-              final isOpenAndCritical = status == IssueStatus.open;
-              
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GestureDetector(
+          itemCount: issues.length,
+          itemBuilder: (context, index) {
+            final issue = issues[index];
+            final isOpenAndCritical = status == IssueStatus.open;
+            
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GestureDetector(
+                onTap: () => _onTapIssue(issue),
+                onLongPress: () => _onLongPressIssue(issue),
+                child: IssueCard(
+                  issue: issue,
+                  showCriticalBell: isOpenAndCritical,
+                  criticality: isOpenAndCritical ? 'Critical' : 'General',
                   onTap: () => _onTapIssue(issue),
-                  onLongPress: () => _onLongPressIssue(issue),
-                  child: IssueCard(
-                    issue: issue,
-                    showCriticalBell: isOpenAndCritical,
-                    criticality: isOpenAndCritical ? 'Critical' : 'General',
-                    onTap: () => _onTapIssue(issue),
-                  ),
                 ),
-              );
-            }).toList(),
-          ),
+              ),
+            );
+          },
         );
       },
     );

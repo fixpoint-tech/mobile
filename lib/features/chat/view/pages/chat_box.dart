@@ -139,6 +139,32 @@ class _ChatPageState extends State<ChatPage> {
     
     _socket!.on('issue_update', (data) {
       print('Received issue update: $data');
+
+      // Handle Petty Cash Update
+      if (data is Map<String, dynamic> && data.containsKey('amount') && data.containsKey('technician_id')) {
+         if (mounted && _issue != null) {
+            try {
+              final newRequest = PettyCashRequestModel.fromJson(data);
+              final currentRequests = List<PettyCashRequestModel>.from(_issue!.pettyCashRequests ?? []);
+              
+              final index = currentRequests.indexWhere((r) => r.id == newRequest.id);
+              if (index != -1) {
+                currentRequests[index] = newRequest;
+              } else {
+                currentRequests.add(newRequest);
+              }
+              
+              setState(() {
+                _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
+              });
+              _scrollToBottom();
+            } catch (e) {
+              print('Error parsing petty cash update: $e');
+            }
+         }
+         return;
+      }
+
       if (data is Map<String, dynamic> && data['success'] == true) {
         final updateData = data['data'] as Map<String, dynamic>;
         if (mounted && _issue != null) {
