@@ -11,6 +11,7 @@ import 'package:mobile/features/chat/view/widgets/status_update_bubble.dart'; //
 import 'package:mobile/features/chat/view/widgets/outside_party_suggestion_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/petty_cash_request_bubble.dart';
 import 'package:mobile/features/tickets/model/issue_model.dart';
+import 'package:mobile/core/services/auth_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:mobile/core/config/api_config.dart';
 
@@ -139,6 +140,32 @@ class _ChatPageState extends State<ChatPage> {
     
     _socket!.on('issue_update', (data) {
       print('Received issue update: $data');
+
+      // Handle Petty Cash Update
+      if (data is Map<String, dynamic> && data.containsKey('amount') && data.containsKey('technician_id')) {
+         if (mounted && _issue != null) {
+            try {
+              final newRequest = PettyCashRequestModel.fromJson(data);
+              final currentRequests = List<PettyCashRequestModel>.from(_issue!.pettyCashRequests ?? []);
+              
+              final index = currentRequests.indexWhere((r) => r.id == newRequest.id);
+              if (index != -1) {
+                currentRequests[index] = newRequest;
+              } else {
+                currentRequests.add(newRequest);
+              }
+              
+              setState(() {
+                _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
+              });
+              _scrollToBottom();
+            } catch (e) {
+              print('Error parsing petty cash update: $e');
+            }
+         }
+         return;
+      }
+
       if (data is Map<String, dynamic> && data['success'] == true) {
         final updateData = data['data'] as Map<String, dynamic>;
         if (mounted && _issue != null) {
@@ -289,6 +316,8 @@ class _ChatPageState extends State<ChatPage> {
       );
     }
 
+
+
     // Get current user from AuthService
     final authService = AuthService.instance;
     final currentUser = authService.currentUser;
@@ -331,40 +360,50 @@ class _ChatPageState extends State<ChatPage> {
 
     final participants = <String, Map<String, String?>>{};
 
-    // If we are in a test mode where ID is 'me', add the placeholder
-    if (currentUserId == 'me') {
+    // Add current user to participants
+    if (currentUser != null) {
+      participants['u_${currentUser.id}'] = {
+        'name': currentUser.name,
+        'avatarUrl': currentUser.profilePicture,
+        'userId': currentUser.id.toString(),
+      };
+    } else if (currentUserId == 'me') {
+      // Fallback for test mode
       participants['u_me'] = {
         'name': 'You',
-        'avatarUrl': 'https://i.pravatar.cc/100?img=3',
+        'avatarUrl': null,
         'userId': 'me'
       };
     }
 
-    // Populate participants from issue data
+    // Populate participants from issue data with real profile pictures
     if (issue.manager?.user != null) {
       participants['u_mgr_${issue.manager!.id}'] = {
         'name': issue.manager!.user!.name,
-        'avatarUrl': 'https://i.pravatar.cc/100?img=5', // Placeholder
+        'avatarUrl': issue.manager!.user!.profilePicture, // Use real profile picture
         'userId': issue.manager!.user!.id.toString(),
       };
     }
     if (issue.technician?.user != null) {
       participants['u_tech_${issue.technician!.id}'] = {
         'name': issue.technician!.user!.name,
-        'avatarUrl': 'https://i.pravatar.cc/100?img=8', // Placeholder
+        'avatarUrl': issue.technician!.user!.profilePicture, // Use real profile picture
         'userId': issue.technician!.user!.id.toString(),
       };
     }
     if (issue.maintenanceExecutive?.user != null) {
       participants['u_exec_${issue.maintenanceExecutive!.id}'] = {
         'name': issue.maintenanceExecutive!.user!.name,
-        'avatarUrl': 'https://i.pravatar.cc/100?img=3', // Placeholder
+        'avatarUrl': issue.maintenanceExecutive!.user!.profilePicture, // Use real profile picture
         'userId': issue.maintenanceExecutive!.user!.id.toString(),
       };
     }
 
     // Combine all items to be displayed in the chat
     final List<Map<String, dynamic>> chatItems = [];
+
+    // Determine severity based on issue status
+    final severityInfo = _getSeverityFromStatus(issue.status);
 
     // Add the main issue ticket
     chatItems.add({
@@ -375,9 +414,9 @@ class _ChatPageState extends State<ChatPage> {
       'branch': issue.branch?.name ?? 'Unknown Branch',
       'timeText':
           '${issue.createdAt.hour}:${issue.createdAt.minute.toString().padLeft(2, '0')} ${issue.createdAt.hour < 12 ? 'AM' : 'PM'}',
-      'severity': 'Critical', // This seems to be hardcoded, leaving as is.
-      'severityColor': const Color(0xFFFF7489),
-      'attachments': <String>['', 'https://picsum.photos/200/200?random=1'],
+      'severity': severityInfo['label'], // Dynamic severity based on status
+      'severityColor': severityInfo['color'], // Dynamic color based on status
+      'attachments': <String>[], // Empty list - attachments will be populated when file upload is implemented
       'creatorId': 'u_mgr_${issue.managerId}',
       'occurrenceTimeText':
           '${issue.createdAt.hour}:${issue.createdAt.minute.toString().padLeft(2, '0')} ${issue.createdAt.hour < 12 ? 'AM' : 'PM'}',
@@ -714,5 +753,45 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ),
     );
+  }
+
+  /// Helper function to convert backend role string to UserRole enum
+  UserRole _getUserRoleFromString(String? role) {
+    switch (role) {
+      case 'technician':
+        return UserRole.technician;
+      case 'branch_manager':
+        return UserRole.branchManager;
+      case 'maintenance_executive':
+        return UserRole.executive;
+      default:
+        return UserRole.executive; // Default fallback
+    }
+  }
+
+  /// Helper function to get severity info from issue status
+  Map<String, dynamic> _getSeverityFromStatus(IssueStatus status) {
+    switch (status) {
+      case IssueStatus.open:
+        return {
+          'label': 'Open',
+          'color': const Color(0xFFFF7489), // Red/Pink - needs attention
+        };
+      case IssueStatus.inProgress:
+        return {
+          'label': 'In Progress',
+          'color': const Color(0xFFFFA726), // Orange - being worked on
+        };
+      case IssueStatus.done:
+        return {
+          'label': 'Done',
+          'color': const Color(0xFF66BB6A), // Green - completed
+        };
+      case IssueStatus.closed:
+        return {
+          'label': 'Closed',
+          'color': const Color(0xFF78909C), // Grey - closed
+        };
+    }
   }
 }

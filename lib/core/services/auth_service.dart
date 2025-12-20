@@ -11,6 +11,8 @@ class UserProfile {
   final String role;
   final String? phone;
   final String? profilePicture;
+  final int? branchId;
+  final int? branchManagerProfileId; // The ID of the BranchManager profile
 
   UserProfile({
     required this.id,
@@ -19,9 +21,21 @@ class UserProfile {
     required this.role,
     this.phone,
     this.profilePicture,
+    this.branchId,
+    this.branchManagerProfileId,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    // Extract branchId from branchManagerProfile if present
+    int? branchId;
+    int? branchManagerProfileId;
+    
+    final branchManagerProfile = json['branchManagerProfile'] as Map<String, dynamic>?;
+    if (branchManagerProfile != null) {
+      branchId = branchManagerProfile['branchId'] as int?;
+      branchManagerProfileId = branchManagerProfile['id'] as int?;
+    }
+    
     return UserProfile(
       id: json['id'] as int,
       name: json['name'] as String,
@@ -29,6 +43,8 @@ class UserProfile {
       role: json['role'] as String,
       phone: json['phone'] as String?,
       profilePicture: json['profilePicture'] as String?,
+      branchId: branchId ?? json['branchId'] as int?,
+      branchManagerProfileId: branchManagerProfileId,
     );
   }
 
@@ -40,6 +56,8 @@ class UserProfile {
       'role': role,
       'phone': phone,
       'profilePicture': profilePicture,
+      'branchId': branchId,
+      'branchManagerProfileId': branchManagerProfileId,
     };
   }
 }
@@ -59,6 +77,7 @@ class AuthService extends ChangeNotifier {
   static const String _userKey = 'auth_user';
 
   UserProfile? get currentUser => _currentUser;
+  String? get token => _token;
   bool get isAuthenticated => _token != null && _currentUser != null;
   bool get isInitialized => _isInitialized;
 
