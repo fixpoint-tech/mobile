@@ -823,7 +823,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       _taskNameController.clear();
       _descriptionController.clear();
       setState(() {
-        _selectedDate = null;
+        _selectedDate = DateTime.now();
         _selectedExecutive = null;
         _uploadedFiles.clear();
       });
