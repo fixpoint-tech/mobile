@@ -244,4 +244,60 @@ class AuthService extends ChangeNotifier {
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
+
+  /// Initiate password reset (sends OTP to email)
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/auth/forgot-password');
+    try {
+      final resp = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode({'email': email}),
+      ).timeout(ApiConfig.timeout);
+
+      final body = json.decode(resp.body) as Map<String, dynamic>;
+      
+      return {
+        'success': resp.statusCode >= 200 && resp.statusCode < 300,
+        'message': body['message'] ?? 'Operation completed',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Complete password reset with OTP and new password
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/auth/reset-password');
+    try {
+      final resp = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode({
+          'email': email,
+          'otp': otp,
+          'newPassword': newPassword,
+        }),
+      ).timeout(ApiConfig.timeout);
+
+      final body = json.decode(resp.body) as Map<String, dynamic>;
+
+      return {
+        'success': resp.statusCode >= 200 && resp.statusCode < 300,
+        'message': body['message'] ?? 'Operation completed',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
 }
