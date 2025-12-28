@@ -759,7 +759,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       final newIssue = IssueModel(
         id: 0, // Backend will assign the real ID
         branchId: currentUser?.branchId ?? 1, // Use user's branch or default to 1
-        managerId: currentUser?.id ?? 1, // Use current user's ID if they are the manager
+        managerId: currentUser?.branchManagerProfileId ?? 1, // Use current user's ID if they are the manager
         title: _taskNameController.text.trim(),
         description: _descriptionController.text.trim(),
         status: IssueStatus.open,
