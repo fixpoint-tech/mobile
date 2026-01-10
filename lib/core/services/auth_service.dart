@@ -136,6 +136,17 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Update current user data from JSON
+  Future<void> updateUserData(Map<String, dynamic> userJson) async {
+    try {
+      _currentUser = UserProfile.fromJson(userJson);
+      await _saveCredentials();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating user data: $e');
+    }
+  }
+
   /// Clear authentication state
   Future<void> clearAuth() async {
     _token = null;

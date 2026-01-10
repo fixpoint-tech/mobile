@@ -8,6 +8,7 @@ import '../../core/routing/app_router.dart';
 class UserHeader extends StatelessWidget {
   final String userName;
   final String userRole;
+  final String? avatarUrl;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onTap;
 
@@ -15,6 +16,7 @@ class UserHeader extends StatelessWidget {
     super.key,
     required this.userName,
     required this.userRole,
+    this.avatarUrl,
     this.onNotificationTap,
     this.onTap,
   });
@@ -28,10 +30,62 @@ class UserHeader extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppColors.secondaryLight,
-              child: Icon(Icons.person, color: AppColors.secondary),
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: avatarUrl != null && avatarUrl!.isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        avatarUrl!,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        // Add cache busting and error handling
+                        cacheWidth: 96, // 2x for retina
+                        cacheHeight: 96,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.secondaryLight,
+                            ),
+                            child: Icon(Icons.person, color: AppColors.secondary),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.secondaryLight,
+                            ),
+                            child: Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.secondary,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.secondaryLight,
+                      ),
+                      child: Icon(Icons.person, color: AppColors.secondary),
+                    ),
             ),
             const SizedBox(width: 10),
             Column(
