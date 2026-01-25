@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import '../config/api_config.dart';
 import 'auth_service.dart';
@@ -51,7 +52,7 @@ class UploadService {
   /// Upload a single file
   /// [file] - The file to upload
   /// [issueId] - Optional issue ID to associate the file with
-  Future<UploadedFile> uploadFile(File file, {int? issueId}) async {
+  Future<UploadedFile> uploadFile(XFile file, {int? issueId}) async {
     final token = AuthService.instance.token;
     if (token == null) {
       throw Exception('Not authenticated');
@@ -92,7 +93,7 @@ class UploadService {
   /// Upload multiple files
   /// [files] - List of files to upload
   /// [issueId] - Optional issue ID to associate the files with
-  Future<List<UploadedFile>> uploadMultipleFiles(List<File> files, {int? issueId}) async {
+  Future<List<UploadedFile>> uploadMultipleFiles(List<XFile> files, {int? issueId}) async {
     final token = AuthService.instance.token;
     if (token == null) {
       throw Exception('Not authenticated');
