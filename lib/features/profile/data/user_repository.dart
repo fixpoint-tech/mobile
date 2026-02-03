@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../../../core/models/app_user.dart';
 
 /// Repository interface for user operations
@@ -10,6 +11,8 @@ abstract class UserRepository {
     String? phone,
     String? password,
     String? extraField,
+    Uint8List? profileImageBytes,
+    String? profileImageName,
   });
 }
 
@@ -57,6 +60,8 @@ class MockUserRepository implements UserRepository {
     String? phone,
     String? password,
     String? extraField,
+    Uint8List? profileImageBytes,
+    String? profileImageName,
   }) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 800));

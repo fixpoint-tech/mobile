@@ -57,13 +57,20 @@ class _MaintenanceExecutiveHomePageState
       body: Column(
         children: [
           // User Header
-          UserHeader(
-            userName: AuthService.instance.currentUser?.name ?? 'User',
-            userRole: AuthService.instance.currentUser?.role == 'maintenance_executive'
-                ? 'Maintenance Executive'
-                : 'Unknown Role',
-            onNotificationTap: () {
-              Navigator.of(context).pushNamed('/notifications');
+          // User Header
+          ListenableBuilder(
+            listenable: AuthService.instance,
+            builder: (context, _) {
+              return UserHeader(
+                userName: AuthService.instance.currentUser?.name ?? 'User',
+                userRole: AuthService.instance.currentUser?.role == 'maintenance_executive'
+                    ? 'Maintenance Executive'
+                    : (AuthService.instance.currentUser?.role ?? ''),
+                avatarUrl: AuthService.instance.currentUser?.profilePicture,
+                onNotificationTap: () {
+                  Navigator.of(context).pushNamed('/notifications');
+                },
+              );
             },
           ),
 

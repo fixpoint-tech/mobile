@@ -82,20 +82,43 @@ class UserProfilePage extends StatelessWidget {
                           color: AppColors.secondary.withOpacity(0.2),
                           width: 2,
                         ),
-                        image: avatarUrl != null && avatarUrl!.isNotEmpty
-                            ? DecorationImage(
-                                image: NetworkImage(avatarUrl!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
                       ),
-                      child: avatarUrl == null || avatarUrl!.isEmpty
-                          ? const Icon(
+                      child: avatarUrl != null && avatarUrl!.isNotEmpty
+                          ? ClipOval(
+                              child: Image.network(
+                                avatarUrl!,
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                                cacheWidth: 112, // 2x for retina
+                                cacheHeight: 112,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.person,
+                                    size: 32,
+                                    color: AppColors.secondary,
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Center(
+                                    child: SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.secondary,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : const Icon(
                               Icons.person,
                               size: 32,
                               color: AppColors.secondary,
-                            )
-                          : null,
+                            ),
                     ),
                     const SizedBox(width: 16),
                     // Text section
