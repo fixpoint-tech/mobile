@@ -57,13 +57,20 @@ class _BranchManagerHomePageState extends State<BranchManagerHomePage> {
             child: Column(
               children: [
                 // User Header
-                UserHeader(
-                  userName: AuthService.instance.currentUser?.name ?? 'User',
-                  userRole: AuthService.instance.currentUser?.role == 'branch_manager'
-                      ? 'Branch Manager'
-                      : 'Unknown Role',
-                  onNotificationTap: () {
-                    Navigator.of(context).pushNamed('/notifications');
+                // User Header
+                ListenableBuilder(
+                  listenable: AuthService.instance,
+                  builder: (context, _) {
+                    return UserHeader(
+                      userName: AuthService.instance.currentUser?.name ?? 'User',
+                      userRole: AuthService.instance.currentUser?.role == 'branch_manager'
+                          ? 'Branch Manager'
+                          : (AuthService.instance.currentUser?.role ?? ''),
+                      avatarUrl: AuthService.instance.currentUser?.profilePicture,
+                      onNotificationTap: () {
+                        Navigator.of(context).pushNamed('/notifications');
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: 8),

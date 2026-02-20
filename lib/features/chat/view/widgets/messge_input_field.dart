@@ -4,8 +4,14 @@ import 'package:mobile/features/user/model/user_role.dart';
 class MessageInputField extends StatefulWidget {
   final UserRole role; // supplied from saved login role
   final Function(String text, String? target)? onSend;
+  final Function(String action)? onAction; // callback for action buttons
 
-  const MessageInputField({super.key, required this.role, this.onSend});
+  const MessageInputField({
+    super.key,
+    required this.role,
+    this.onSend,
+    this.onAction,
+  });
 
   @override
   State<MessageInputField> createState() => _MessageInputFieldState();
@@ -107,7 +113,11 @@ class _MessageInputFieldState extends State<MessageInputField> {
                       ]
                     : [
                         for (int i = 0; i < actions.length; i++) ...[
-                          actionChip(actions[i]),
+                          actionChip(actions[i], () {
+                            _removeOverlay();
+                            setState(() => showActions = false);
+                            widget.onAction?.call(actions[i]);
+                          }),
                           if (i < actions.length - 1) const SizedBox(height: 6),
                         ],
                       ],
@@ -275,18 +285,21 @@ class _MessageInputFieldState extends State<MessageInputField> {
     );
   }
 
-  Widget actionChip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF7489),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
+  Widget actionChip(String text, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF7489),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );

@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../../../core/config/api_config.dart';
 import '../../../core/models/app_user.dart';
 import '../../../core/services/auth_service.dart';
@@ -44,6 +46,8 @@ class ApiUserRepository implements UserRepository {
 
         // Backend returns: { success: true, data: { ...user } }
         if (data['success'] == true && data['data'] != null) {
+          // Sync with AuthService
+          await _authService.updateUserData(data['data']);
           return _mapUserFromApi(data['data']);
         } else {
           throw Exception('Invalid response format from server');
@@ -73,6 +77,8 @@ class ApiUserRepository implements UserRepository {
     String? phone,
     String? password,
     String? extraField,
+    Uint8List? profileImageBytes,
+    String? profileImageName,
   }) async {
     try {
       final userProfile = _authService.currentUser;
@@ -83,8 +89,8 @@ class ApiUserRepository implements UserRepository {
       final endpoint = _getRoleEndpoint(userProfile.role);
       final url = Uri.parse('${ApiConfig.baseUrl}$endpoint/$userId');
 
-      // Build request body
-      final Map<String, dynamic> body = {};
+      // Prepare fields map
+      final Map<String, String> fields = {};
 
       // Combine first and last name into single 'name' field
       if (firstName != null || lastName != null) {
@@ -92,65 +98,168 @@ class ApiUserRepository implements UserRepository {
         final last = lastName?.trim() ?? '';
         final fullName = '$first $last'.trim();
         if (fullName.isNotEmpty) {
-          body['name'] = fullName;
+          fields['name'] = fullName;
         }
       }
 
       if (phone != null && phone.isNotEmpty) {
-        body['phone'] = phone;
+        fields['phone'] = phone;
       }
 
       if (password != null && password.isNotEmpty) {
-        body['password'] = password;
+        fields['password'] = password;
       }
 
       // Handle role-specific extra fields
       if (extraField != null && extraField.isNotEmpty) {
         switch (userProfile.role) {
           case 'technician':
-            // Technicians might have specialization or employeeId
-            body['specialization'] = extraField;
+            fields['specialization'] = extraField;
             break;
           case 'branch_manager':
-            // Branch managers have branchId
-            body['branchId'] = int.tryParse(extraField) ?? extraField;
+            fields['branchId'] = extraField;
             break;
           case 'maintenance_executive':
-            // Maintenance executives might have department
-            body['department'] = extraField;
+            fields['department'] = extraField;
             break;
         }
       }
-
-      // Don't send empty body
-      if (body.isEmpty) {
-        throw Exception('No fields to update');
+      
+      // Debug logging
+      print('Updating profile for user $userId, role: ${userProfile.role}');
+      print('Fields being sent: $fields');
+      print('Has image: ${profileImageBytes != null}, Image name: $profileImageName');
+      print('URL: $url');
+      
+      // If we have an image, we MUST use MultipartRequest
+      if (profileImageBytes != null && profileImageName != null) {
+        final request = http.MultipartRequest('PUT', url);
+        
+        // Add auth header only (let http set the multipart content-type)
+        final token = _authService.token;
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+        request.headers['Accept'] = 'application/json';
+        
+        // Add fields
+        request.fields.addAll(fields);
+        
+        // Determine content type from filename extension
+        // On web, file names from image_picker might be like "image_picker_xxx.png" or just a blob
+        String mimeType = 'image/jpeg'; // default
+        String filename = profileImageName;
+        
+        // Extract extension, handle various filename formats
+        String ext = '';
+        if (filename.contains('.')) {
+          ext = filename.toLowerCase().split('.').last;
+        }
+        
+        print('DEBUG: Original filename: $filename');
+        print('DEBUG: Detected extension: $ext');
+        
+        switch (ext) {
+          case 'png':
+            mimeType = 'image/png';
+            break;
+          case 'webp':
+            mimeType = 'image/webp';
+            break;
+          case 'jpg':
+          case 'jpeg':
+            mimeType = 'image/jpeg';
+            break;
+          default:
+            // If no extension or unknown, default to jpeg
+            mimeType = 'image/jpeg';
+            // Also ensure filename has an extension for the server
+            if (!filename.contains('.')) {
+              filename = '$filename.jpg';
+            }
+        }
+        
+        print('DEBUG: Using mimeType: $mimeType');
+        print('DEBUG: Final filename: $filename');
+        
+        // Add file from bytes with proper content type
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'profilePicture',
+            profileImageBytes,
+            filename: filename,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+        
+        final streamedResponse = await _client.send(request).timeout(ApiConfig.timeout);
+        final response = await http.Response.fromStream(streamedResponse);
+        
+        await _handleResponse(response);
+      } else {
+        // Normal JSON request if no image
+        if (fields.isEmpty) {
+           throw Exception('No fields to update');
+        }
+        
+        final response = await _client
+            .put(
+              url,
+              headers: _authService.getAuthHeaders(),
+              body: jsonEncode(fields),
+            )
+            .timeout(ApiConfig.timeout);
+            
+         await _handleResponse(response);
       }
 
-      final response = await _client
-          .put(
-            url,
-            headers: _authService.getAuthHeaders(),
-            body: jsonEncode(body),
-          )
-          .timeout(ApiConfig.timeout);
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Network error: $e');
+    }
+  }
 
+  Future<void> _handleResponse(http.Response response) async {
+      print('=== API Response ===');
+      print('Status: ${response.statusCode}');
+      print('Headers: ${response.headers}');
+      print('Body: ${response.body}');
+      print('===================');
+      
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] != true) {
-          throw Exception(data['message'] ?? 'Update failed');
+        try {
+          final data = jsonDecode(response.body);
+          if (data['success'] != true) {
+            throw Exception(data['message'] ?? 'Update failed');
+          }
+          // Success - profile updated
+        } catch (e) {
+          if (e is Exception) rethrow;
+          print('Error parsing success response: $e');
+          throw Exception('Failed to parse response');
         }
-        // Success - profile updated
       } else if (response.statusCode == 400) {
-        final error = jsonDecode(response.body);
-        // Validation errors
+        dynamic error;
+        try {
+          error = jsonDecode(response.body);
+        } catch (e) {
+          throw Exception('Server returned invalid JSON: ${response.body}');
+        }
+        
+        // Validation errors from express-validator
         if (error['errors'] != null && error['errors'] is List) {
           final errors = (error['errors'] as List)
               .map((e) => e['message'] ?? e.toString())
               .join(', ');
           throw Exception('Validation error: $errors');
-        } else {
-          throw Exception(error['message'] ?? 'Invalid data provided');
+        }
+        // Controller error message
+        else if (error['message'] != null) {
+          throw Exception(error['message']);
+        }
+        // Unknown 400 error
+        else {
+          throw Exception('Bad request: ${response.body}');
         }
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         await _authService.clearAuth();
@@ -158,13 +267,8 @@ class ApiUserRepository implements UserRepository {
       } else if (response.statusCode == 404) {
         throw Exception('User not found');
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Failed to update profile');
+        throw Exception('Server error (${response.statusCode}): ${response.body}');
       }
-    } catch (e) {
-      if (e is Exception) rethrow;
-      throw Exception('Network error: $e');
-    }
   }
 
   /// Map API response to AppUser model

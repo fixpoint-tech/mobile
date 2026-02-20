@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../../../theme/app_colors.dart';
-import '../../../core/config/api_config.dart';
+import '../../../core/services/auth_service.dart';
+import 'reset_password_page.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -28,54 +27,36 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       setState(() => _isLoading = true);
 
       try {
-        final uri = Uri.parse('${ApiConfig.baseUrl}/auth/forgot-password');
-        final response = await http.post(
-          uri,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: json.encode({'email': _emailController.text.trim()}),
-        ).timeout(ApiConfig.timeout);
+        final result = await AuthService.instance.forgotPassword(
+          _emailController.text.trim(),
+        );
 
         if (!mounted) return;
 
-        final body = json.decode(response.body) as Map<String, dynamic>;
-
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          // Show success message
+        if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                body['message'] ?? 'Password reset link sent to ${_emailController.text}',
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
+              content: Text('${result['message']}'),
               backgroundColor: AppColors.success,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           );
 
-          // Navigate back to login after 2 seconds
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              Navigator.pop(context);
-            }
-          });
+          // Navigate to Reset Password Page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ResetPasswordPage(
+                email: _emailController.text.trim(),
+              ),
+            ),
+          );
         } else {
-          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                body['message'] ?? 'Failed to send password reset link',
-                style: GoogleFonts.outfit(fontSize: 14),
-              ),
+              content: Text('${result['message']}'),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           );
         }
@@ -83,13 +64,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Network error: ${e.toString()}',
-              style: GoogleFonts.outfit(fontSize: 14),
-            ),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         );
       } finally {

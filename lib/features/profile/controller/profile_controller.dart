@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/models/app_user.dart';
 import '../data/user_repository.dart';
 
@@ -17,6 +19,8 @@ class ProfileController extends ChangeNotifier {
   AppUser? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
 
   ProfileController({required UserRepository repository})
     : _repository = repository {
@@ -26,6 +30,8 @@ class ProfileController extends ChangeNotifier {
   AppUser? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  XFile? get selectedImage => _selectedImage;
+  Uint8List? get selectedImageBytes => _selectedImageBytes;
 
   /// Get the label for the extra field based on user role
   String get extraFieldLabel {
@@ -37,6 +43,29 @@ class ProfileController extends ChangeNotifier {
         return 'Email';
       case UserRole.maintenanceExecutive:
         return 'Location';
+    }
+  }
+
+  /// Pick an image from gallery
+  Future<void> pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800, // Optimize image size
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      
+      if (pickedFile != null) {
+        _selectedImage = pickedFile;
+        // Read bytes for cross-platform compatibility (web + mobile)
+        _selectedImageBytes = await pickedFile.readAsBytes();
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to pick image: $e';
+      notifyListeners();
     }
   }
 
@@ -103,7 +132,13 @@ class ProfileController extends ChangeNotifier {
         extraField: extraFieldController.text.trim().isEmpty
             ? null
             : extraFieldController.text.trim(),
+        profileImageBytes: _selectedImageBytes,
+        profileImageName: _selectedImage?.name,
       );
+      
+      // Reload user data to get updated avatar URL if changed
+      await _loadCurrentUser();
+      
       _errorMessage = null;
       return true;
     } catch (e) {
