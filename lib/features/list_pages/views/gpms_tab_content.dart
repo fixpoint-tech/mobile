@@ -15,7 +15,7 @@ class GPMsTabContent extends StatelessWidget {
     return GenericListTabContent<BranchManager>(
       fetchItems: () async {
         final allBranchManagers = await service.getAllBranchManagers();
-        return allBranchManagers.where((bm) => bm.branchId != null).toList();
+        return allBranchManagers.where((bm) => bm.branchId == null).toList();
       },
       emptyMessage: 'No GPMs found',
       itemBuilder: (context, gpm) {
@@ -31,7 +31,7 @@ class GPMsTabContent extends StatelessWidget {
                 : null,
           ),
           title: gpm.name,
-          subtitle: gpm.branchName != null ? 'GPM | ${gpm.branchName}' : 'GPM',
+          subtitle: 'GPM',
           onEdit: () {
             Navigator.of(context).push(
               MaterialPageRoute(

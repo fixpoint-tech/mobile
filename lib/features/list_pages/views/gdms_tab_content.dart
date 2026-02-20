@@ -15,7 +15,7 @@ class GDMsTabContent extends StatelessWidget {
     return GenericListTabContent<BranchManager>(
       fetchItems: () async {
         final allBranchManagers = await service.getAllBranchManagers();
-        return allBranchManagers.where((bm) => bm.branchId == null).toList();
+        return allBranchManagers.where((bm) => bm.branchId != null).toList();
       },
       emptyMessage: 'No GDMs found',
       itemBuilder: (context, gdm) {
@@ -31,7 +31,7 @@ class GDMsTabContent extends StatelessWidget {
                 : null,
           ),
           title: gdm.name,
-          subtitle: 'GDM',
+          subtitle: gdm.branchName != null ? 'GDM | ${gdm.branchName}' : 'GDM',
           onEdit: () {
             Navigator.of(context).push(
               MaterialPageRoute(

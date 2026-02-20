@@ -48,13 +48,12 @@ class _AddGPMPageState extends State<AddGPMPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Create GPM with a dummy branchId=1 to differentiate from GDM
+      // Create GPM without a branchId to differentiate from GDM
       await _service.createBranchManager(
         name: '$firstName $lastName',
         email: email,
         phone: phone.isNotEmpty ? phone : null,
         password: 'default123',
-        branchId: 1, // Assign a default branch to mark as GPM
       );
 
       if (!mounted) return;

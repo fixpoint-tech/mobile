@@ -83,8 +83,8 @@ class BranchManager {
     // Both GDM and GPM are stored as 'branch_manager' in backend
     // We can differentiate them based on context or additional field
     if (branchName != null) {
-      return 'GPM | $branchName';
+      return 'GDM | $branchName';
     }
-    return 'GDM';
+    return 'GPM';
   }
 }

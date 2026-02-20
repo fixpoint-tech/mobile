@@ -87,6 +87,7 @@ class _AddGDMPageState extends State<AddGDMPage> {
         email: email,
         phone: phone.isNotEmpty ? phone : null,
         password: 'default123', // You might want to add a password field
+        branchId: _selectedOutlet?.id,
       );
 
       if (!mounted) return;

@@ -83,8 +83,8 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
       final mes = await _meService.getAllMaintenanceExecutives();
 
       setState(() {
-        _gdmCount = branchManagers.where((bm) => bm.branchId == null).length;
-        _gpmCount = branchManagers.where((bm) => bm.branchId != null).length;
+        _gdmCount = branchManagers.where((bm) => bm.branchId != null).length;
+        _gpmCount = branchManagers.where((bm) => bm.branchId == null).length;
         _outletCount = outlets.length;
         _meCount = mes.length;
         _isLoadingCounts = false;
@@ -212,7 +212,7 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
   static String _titleForTab(int i) {
     switch (i) {
       case 0:
-        return 'Guest delight Managers';
+        return 'Guest Delight Managers';
       case 1:
         return 'General Purpose Mechanics';
       case 2:
