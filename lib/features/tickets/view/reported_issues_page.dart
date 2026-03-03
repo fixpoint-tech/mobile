@@ -22,6 +22,10 @@ class _ReportedIssuesPageState extends State<ReportedIssuesPage> {
         return 'Done';
       case IssueStatus.closed:
         return 'Closed';
+      case IssueStatus.pendingResolution:
+        return 'Pending Resolution';
+      case IssueStatus.pendingClose:
+        return 'Pending Close';
     }
   }
 

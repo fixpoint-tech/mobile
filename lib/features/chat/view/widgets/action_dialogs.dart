@@ -930,7 +930,7 @@ class _SuggestOutsidePartyDialogState extends State<SuggestOutsidePartyDialog> {
 /// Dialog for updating issue status
 class UpdateStatusDialog extends StatefulWidget {
   final String currentStatus;
-  final Function(String newStatus, String? description, XFile? imageFile) onUpdate;
+  final Function(String newStatus, String? description, List<XFile> imageFiles) onUpdate;
 
   const UpdateStatusDialog({
     super.key,
@@ -943,31 +943,23 @@ class UpdateStatusDialog extends StatefulWidget {
 }
 
 class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
-  final TextEditingController _descriptionController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
-  XFile? _selectedImage;
+  final TextEditingController _descriptionController = TextEditingController();
+  List<XFile> _selectedImages = [];
+  List<Uint8List> _imageBytesList = [];
   late String _selectedStatus;
 
   final List<Map<String, dynamic>> _statusOptions = [
-    {'value': 'open', 'label': 'Open', 'color': Colors.blue},
-    {'value': 'in_progress', 'label': 'In Progress', 'color': Colors.orange},
-    {'value': 'resolved', 'label': 'Resolved', 'color': Colors.green},
-    {'value': 'closed', 'label': 'Closed', 'color': Colors.grey},
+    {'value': 'open',        'label': 'Open',        'color': Color(0xFF3EA8D0)},
+    {'value': 'in_progress', 'label': 'In Progress', 'color': Color(0xFFFFA726)},
+    {'value': 'resolved',    'label': 'Resolved',    'color': Color(0xFF66BB6A)},
+    {'value': 'closed',      'label': 'Closed',      'color': Color(0xFF78909C)},
   ];
 
   @override
   void initState() {
     super.initState();
-    // Normalize the status value to match dropdown options
     _selectedStatus = _normalizeStatus(widget.currentStatus);
-  }
-
-  /// Normalize status value to match dropdown options
-  String _normalizeStatus(String status) {
-    final normalized = status.toLowerCase().replaceAll(' ', '_');
-    // Verify it's a valid status, otherwise default to 'open'
-    final validStatuses = _statusOptions.map((opt) => opt['value'] as String).toList();
-    return validStatuses.contains(normalized) ? normalized : 'open';
   }
 
   @override
@@ -976,25 +968,40 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
     super.dispose();
   }
 
+  String _normalizeStatus(String status) {
+    if (status.toLowerCase().contains('resolved') || status.toLowerCase().contains('done')) {
+      return 'resolved';
+    }
+    final normalized = status.toLowerCase().replaceAll(' ', '_');
+    final validStatuses = _statusOptions.map((opt) => opt['value'] as String).toList();
+    return validStatuses.contains(normalized) ? normalized : 'open';
+  }
+
   Future<void> _pickImage() async {
     try {
-      final XFile? pickedFile = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+      final List<XFile> pickedFiles = await _imagePicker.pickMultiImage(
         maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
       );
-
-      if (pickedFile != null && mounted) {
+      
+      if (pickedFiles.isNotEmpty && mounted) {
+        final List<Uint8List> bytesList = [];
+        for (final file in pickedFiles) {
+          final bytes = await file.readAsBytes();
+          bytesList.add(bytes);
+        }
+        
         setState(() {
-          _selectedImage = pickedFile;
+          _selectedImages.addAll(pickedFiles);
+          _imageBytesList.addAll(bytesList);
         });
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to pick image: ${e.toString()}'),
+            content: Text('Failed to pick images: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1002,160 +1009,264 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
     }
   }
 
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+      _imageBytesList.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: const Color(0xFFEBEFF2),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Container(
         width: double.infinity,
-        constraints: const BoxConstraints(maxWidth: 400),
+        constraints: const BoxConstraints(maxWidth: 420),
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
+              // ── Title ──
               Text(
                 'Update the Status',
                 style: GoogleFonts.outfit(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textTitle,
+                  color: const Color(0xFF1E1E1E),
                 ),
               ),
-              const SizedBox(height: 8),
-              // Subtitle
+              const SizedBox(height: 4),
               Text(
                 'Update the current status of the reported issue',
                 style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                  color: const Color(0xFF757575),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Status selection dropdown
+              // ── Status Radio List ──
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.grey),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedStatus,
-                    isExpanded: true,
-                    icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
-                    items: _statusOptions.map((option) {
-                      return DropdownMenuItem<String>(
-                        value: option['value'] as String,
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: option['color'] as Color,
-                                shape: BoxShape.circle,
-                              ),
+                child: Column(
+                  children: _statusOptions.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final option = entry.value;
+                    final value = option['value'] as String;
+                    final label = option['label'] as String;
+                    final color = option['color'] as Color;
+                    final isSelected = _selectedStatus == value;
+                    final isLast = idx == _statusOptions.length - 1;
+
+                    return Column(
+                      children: [
+                        InkWell(
+                          borderRadius: BorderRadius.vertical(
+                            top: idx == 0 ? const Radius.circular(10) : Radius.zero,
+                            bottom: isLast ? const Radius.circular(10) : Radius.zero,
+                          ),
+                          onTap: () => setState(() => _selectedStatus = value),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            child: Row(
+                              children: [
+                                // Radio dot
+                                Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: color, width: 2),
+                                    color: isSelected ? color : Colors.transparent,
+                                  ),
+                                  child: isSelected
+                                      ? Center(
+                                          child: Container(
+                                            width: 7,
+                                            height: 7,
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 12),
+                                // Color dot
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  label,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 14,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                    color: const Color(0xFF1E1E1E),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              option['label'] as String,
-                              style: GoogleFonts.outfit(
-                                fontSize: 14,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
+                        if (!isLast)
+                          Divider(height: 1, color: Colors.grey.shade100),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Description field ──
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: TextField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: 'Add a note (optional)',
+                    hintStyle: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: const Color(0xFF9E9E9E),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  style: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF1E1E1E)),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Image picker / preview ──
+              if (_imageBytesList.isNotEmpty) ...[
+                // Images preview grid with remove buttons
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: _imageBytesList.length,
+                    itemBuilder: (context, index) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.memory(
+                              _imageBytesList[index],
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: const Icon(Icons.close, color: Colors.white, size: 14),
+                              ),
+                            ),
+                          ),
+                        ],
                       );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedStatus = value;
-                        });
-                      }
                     },
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              // Description text field
-              TextField(
-                controller: _descriptionController,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  hintText: 'Description (optional)',
-                  hintStyle: GoogleFonts.outfit(
-                    fontSize: 14,
-                    color: AppColors.textDisabled,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.grey),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: AppColors.secondary),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                ),
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Upload Image button
-              InkWell(
-                onTap: _pickImage,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _selectedImage == null ? 'Upload Image' : 'Image Selected',
-                        style: GoogleFonts.outfit(
-                          fontSize: 14,
-                          color: _selectedImage == null 
-                              ? AppColors.textSecondary 
-                              : AppColors.secondary,
-                          fontWeight: _selectedImage == null 
-                              ? FontWeight.w400 
-                              : FontWeight.w500,
+                const SizedBox(height: 12),
+                // Add more images button
+                InkWell(
+                  onTap: _pickImage,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: const Color(0xFF3EA8D0)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.add_photo_alternate, size: 18, color: Color(0xFF3EA8D0)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Add More Images',
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            color: const Color(0xFF3EA8D0),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      Icon(
-                        _selectedImage == null ? Icons.upload : Icons.check_circle,
-                        size: 20,
-                        color: _selectedImage == null 
-                            ? AppColors.textSecondary 
-                            : AppColors.secondary,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ] else ...[
+                // Pick image button
+                InkWell(
+                  onTap: _pickImage,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.image_outlined, size: 22, color: Colors.grey.shade500),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Attach Images (optional)',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
 
-              // Action buttons
+              // ── Buttons ──
               Row(
                 children: [
                   Expanded(
@@ -1163,17 +1274,15 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
                       onPressed: () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        side: const BorderSide(color: AppColors.grey),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        side: BorderSide(color: Colors.grey.shade300),
                       ),
                       child: Text(
                         'Cancel',
                         style: GoogleFonts.outfit(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textPrimary,
+                          color: const Color(0xFF1E1E1E),
                         ),
                       ),
                     ),
@@ -1182,26 +1291,22 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        final description = _descriptionController.text.trim().isEmpty
+                        final desc = _descriptionController.text.trim().isEmpty
                             ? null
                             : _descriptionController.text.trim();
-                        widget.onUpdate(_selectedStatus, description, _selectedImage);
+                        widget.onUpdate(_selectedStatus, desc, _selectedImages);
                         Navigator.of(context).pop();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondary,
+                        backgroundColor: const Color(0xFF3EA8D0),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
                       ),
                       child: Text(
                         'Finish',
-                        style: GoogleFonts.outfit(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ),
@@ -1214,6 +1319,7 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
     );
   }
 }
+
 
 /// Dialog for requesting petty cash (for technicians)
 class RequestPettyCashDialog extends StatefulWidget {
@@ -1483,7 +1589,7 @@ Future<void> showCloseIssueDialog(BuildContext context, Function(String?, XFile?
 Future<void> showUpdateStatusDialog(
   BuildContext context,
   String currentStatus,
-  Function(String, String?, XFile?) onUpdate,
+  Function(String, String?, List<XFile>) onUpdate,
 ) {
   return showDialog(
     context: context,

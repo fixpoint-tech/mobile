@@ -157,4 +157,53 @@ class IssueApiService {
       throw Exception('Failed to assign third party: ${e.toString()}');
     }
   }
+
+  /// Add a status update log entry for an issue.
+  /// [issueId] - the issue to log against
+  /// [userId] - ID of the user making the update
+  /// [description] - required description of what changed
+  /// [imageUrl] - optional single uploaded image URL (deprecated, use imageUrls)
+  /// [imageUrls] - optional list of uploaded image URLs
+  /// [statusType] - one of: Open, Assigned, In Progress, Resolved, Closed
+  Future<StatusModel> addStatusUpdate({
+    required int issueId,
+    required int userId,
+    required String description,
+    String? imageUrl,
+    List<String>? imageUrls,
+    String statusType = 'Open',
+  }) async {
+    try {
+      final Map<String, dynamic> requestBody = {
+        'user_id': userId,
+        'description': description,
+        'status_type': statusType,
+      };
+
+      // Support both single imageUrl and multiple imageUrls
+      if (imageUrls != null && imageUrls.isNotEmpty) {
+        requestBody['image_urls'] = imageUrls;
+      } else if (imageUrl != null) {
+        requestBody['image_url'] = imageUrl;
+      }
+
+      final response = await _apiService.post('/issues/$issueId/statuses', requestBody);
+
+      final data = response['data'] as Map<String, dynamic>;
+      return StatusModel.fromJson(data);
+    } catch (e) {
+      throw Exception('Failed to create status update: ${e.toString()}');
+    }
+  }
+
+  /// Fetch all status updates for an issue.
+  Future<List<StatusModel>> getStatusUpdates(int issueId) async {
+    try {
+      final response = await _apiService.get('/issues/$issueId/statuses');
+      final List<dynamic> data = response['data'] as List<dynamic>;
+      return data.map((x) => StatusModel.fromJson(x as Map<String, dynamic>)).toList();
+    } catch (e) {
+      throw Exception('Failed to fetch status updates: ${e.toString()}');
+    }
+  }
 }

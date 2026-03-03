@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class IssueModel {
   final int id;
   final int branchId;
@@ -17,6 +19,8 @@ class IssueModel {
   // Relation arrays
   final List<MessageModel>? messages;
   final List<PettyCashRequestModel>? pettyCashRequests;
+  final List<StatusModel>? statuses;
+  final List<OutsidePartyRequestModel>? outsidePartyRequests;
 
   // Optional relation objects (when include_relations=true)
   final BranchInfo? branch;
@@ -42,6 +46,8 @@ class IssueModel {
     required this.updatedAt,
     this.messages,
     this.pettyCashRequests,
+    this.statuses,
+    this.outsidePartyRequests,
     this.branch,
     this.manager,
     this.technician,
@@ -76,6 +82,12 @@ class IssueModel {
           .toList(),
       pettyCashRequests: (json['pettyCashRequests'] as List<dynamic>?)
           ?.map((x) => PettyCashRequestModel.fromJson(x as Map<String, dynamic>))
+          .toList(),
+      statuses: (json['statuses'] as List<dynamic>?)
+          ?.map((x) => StatusModel.fromJson(x as Map<String, dynamic>))
+          .toList(),
+      outsidePartyRequests: (json['outsidePartyRequests'] as List<dynamic>?)
+          ?.map((x) => OutsidePartyRequestModel.fromJson(x as Map<String, dynamic>))
           .toList(),
       branch: json['branch'] != null ? BranchInfo.fromJson(json['branch']) : null,
       manager: json['manager'] != null ? ManagerInfo.fromJson(json['manager']) : null,
@@ -123,6 +135,8 @@ class IssueModel {
     DateTime? updatedAt,
     List<MessageModel>? messages,
     List<PettyCashRequestModel>? pettyCashRequests,
+    List<StatusModel>? statuses,
+    List<OutsidePartyRequestModel>? outsidePartyRequests,
     BranchInfo? branch,
     ManagerInfo? manager,
     TechnicianInfo? technician,
@@ -146,6 +160,8 @@ class IssueModel {
       updatedAt: updatedAt ?? this.updatedAt,
       messages: messages ?? this.messages,
       pettyCashRequests: pettyCashRequests ?? this.pettyCashRequests,
+      statuses: statuses ?? this.statuses,
+      outsidePartyRequests: outsidePartyRequests ?? this.outsidePartyRequests,
       branch: branch ?? this.branch,
       manager: manager ?? this.manager,
       technician: technician ?? this.technician,
@@ -154,6 +170,87 @@ class IssueModel {
     );
   }
 }
+
+/// Model for a status update log entry.
+class StatusModel {
+  final int id;
+  final int issueId;
+  final int userId;
+  final String description;
+  final List<String> imageUrls; // Changed to support multiple images
+  final String statusType;
+  final DateTime createdAt;
+  final UserInfo? user;
+
+  StatusModel({
+    required this.id,
+    required this.issueId,
+    required this.userId,
+    required this.description,
+    List<String>? imageUrls,
+    required this.statusType,
+    required this.createdAt,
+    this.user,
+  }) : imageUrls = imageUrls ?? [];
+
+  /// Backward compatibility: get first image URL or null
+  String? get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : null;
+
+  factory StatusModel.fromJson(Map<String, dynamic> json) {
+    // Parse image_url field which can be:
+    // - null
+    // - a single URL string
+    // - a JSON array of URLs
+    List<String> parseImageUrls(dynamic imageUrlData) {
+      if (imageUrlData == null) return [];
+      
+      if (imageUrlData is List) {
+        return imageUrlData.map((e) => e.toString()).toList();
+      }
+      
+      if (imageUrlData is String) {
+        // Try to parse as JSON array first
+        if (imageUrlData.startsWith('[')) {
+          try {
+            final List<dynamic> parsed = jsonDecode(imageUrlData);
+            return parsed.map((e) => e.toString()).toList();
+          } catch (_) {
+            // If parsing fails, treat as single URL
+            return [imageUrlData];
+          }
+        }
+        // Single URL string
+        return [imageUrlData];
+      }
+      
+      return [];
+    }
+
+    return StatusModel(
+      id: json['id'] as int,
+      issueId: json['issue_id'] as int? ?? 0,
+      userId: json['user_id'] as int,
+      description: json['description'] as String,
+      imageUrls: parseImageUrls(json['image_url']),
+      statusType: json['status_type'] as String? ?? 'Open',
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      user: json['user'] != null ? UserInfo.fromJson(json['user'] as Map<String, dynamic>) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'issue_id': issueId,
+    'user_id': userId,
+    'description': description,
+    'image_url': imageUrls.isNotEmpty 
+        ? (imageUrls.length == 1 ? imageUrls.first : jsonEncode(imageUrls))
+        : null,
+    'status_type': statusType,
+    'createdAt': createdAt.toIso8601String(),
+  };
+}
+
 
 // Relation models
 class BranchInfo {
@@ -257,6 +354,58 @@ class ThirdPartyInfo {
   }
 }
 
+class OutsidePartyRequestModel {
+  final String id;
+  final int issueId;
+  final int suggestedBy;
+  final String vendorName;
+  final String description;
+  final String status; // pending | approved | rejected
+  final int? approvedBy;
+  final String? approvalComment;
+  final DateTime createdAt;
+
+  OutsidePartyRequestModel({
+    required this.id,
+    required this.issueId,
+    required this.suggestedBy,
+    required this.vendorName,
+    required this.description,
+    required this.status,
+    this.approvedBy,
+    this.approvalComment,
+    required this.createdAt,
+  });
+
+  factory OutsidePartyRequestModel.fromJson(Map<String, dynamic> json) {
+    return OutsidePartyRequestModel(
+      id: json['id'] as String,
+      issueId: json['issue_id'] as int,
+      suggestedBy: json['suggested_by'] as int,
+      vendorName: json['vendor_name'] as String,
+      description: json['description'] as String,
+      status: json['status'] as String,
+      approvedBy: json['approved_by'] as int?,
+      approvalComment: json['approval_comment'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] ?? json['created_at'] as String),
+    );
+  }
+
+  OutsidePartyRequestModel copyWith({String? status, int? approvedBy, String? approvalComment}) {
+    return OutsidePartyRequestModel(
+      id: id,
+      issueId: issueId,
+      suggestedBy: suggestedBy,
+      vendorName: vendorName,
+      description: description,
+      status: status ?? this.status,
+      approvedBy: approvedBy ?? this.approvedBy,
+      approvalComment: approvalComment ?? this.approvalComment,
+      createdAt: createdAt,
+    );
+  }
+}
+
 class PettyCashRequestModel {
   final String id;
   final int technicianId;
@@ -323,6 +472,8 @@ class MessageModel {
 enum IssueStatus {
   open('Open'),
   inProgress('In Progress'),
+  pendingResolution('Pending Resolution'),
+  pendingClose('Pending Close'),
   done('Done'),
   closed('Closed');
 
