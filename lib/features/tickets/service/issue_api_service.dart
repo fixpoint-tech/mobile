@@ -1,4 +1,5 @@
 import '../../../core/services/api_service.dart';
+import '../../../core/services/auth_service.dart';
 import '../model/issue_model.dart';
 
 /// Service for issue-related API calls
@@ -70,16 +71,58 @@ class IssueApiService {
     }
   }
 
-  /// Update issue status
-  Future<IssueModel> updateIssueStatus(int issueId, IssueStatus status) async {
+  /// Maps app status to backend status_type for POST /statuses (Open, Assigned, In Progress, Resolved, Closed).
+  static String _statusTypeForLog(IssueStatus status) {
+    switch (status) {
+      case IssueStatus.done:
+        return 'Resolved';
+      case IssueStatus.pendingResolution:
+        return 'In Progress';
+      case IssueStatus.pendingClose:
+        return 'Closed';
+      case IssueStatus.open:
+        return 'Open';
+      case IssueStatus.inProgress:
+        return 'In Progress';
+      case IssueStatus.closed:
+        return 'Closed';
+    }
+  }
+
+  /// Update issue status.
+  /// Logs the change via POST /issues/:id/statuses then updates the issue via PUT /issues/:id/status.
+  /// [userId] and [description] are optional; if not provided, current user and a default description are used.
+  Future<IssueModel> updateIssueStatus(
+    int issueId,
+    IssueStatus status, {
+    int? userId,
+    String? description,
+  }) async {
     try {
+      final effectiveUserId = userId ?? AuthService.instance.currentUser?.id;
+      if (effectiveUserId == null) {
+        throw Exception('User ID required for status update (not logged in)');
+      }
+      final effectiveDescription =
+          description ?? 'Status updated to ${status.value}';
+
+      // POST /issues/:id/statuses - add status update log entry
+      // Backend accepts: Open, Assigned, In Progress, Resolved, Closed
+      final statusTypeForLog = _statusTypeForLog(status);
+      await _apiService.post('/issues/$issueId/statuses', {
+        'user_id': effectiveUserId,
+        'description': effectiveDescription,
+        'status_type': statusTypeForLog,
+      });
+
+      // PUT /issues/:id/status - update issue status and get updated issue
       final response = await _apiService.put('/issues/$issueId/status', {
         'status': status.value,
       });
-      
+
       // Backend returns: { success: true, data: {...}, message }
       final issueData = response['data'] as Map<String, dynamic>;
-      
+
       return IssueModel.fromJson(issueData);
     } catch (e) {
       throw Exception('Failed to update issue status: ${e.toString()}');
