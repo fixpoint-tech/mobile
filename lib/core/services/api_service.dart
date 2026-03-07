@@ -104,7 +104,14 @@ class ApiService {
     } else if (response.statusCode == 404) {
       throw ApiException('Not found');
     } else if (response.statusCode == 500) {
-      throw ApiException('Server error');
+      try {
+        final body = json.decode(response.body);
+        final err = body['error'];
+        throw ApiException(err != null ? 'Server error: $err' : 'Server error');
+      } catch (e) {
+        if (e is ApiException) rethrow;
+        throw ApiException('Server error');
+      }
     } else {
       throw ApiException('Error: ${response.statusCode}');
     }

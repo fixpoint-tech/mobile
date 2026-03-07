@@ -249,4 +249,51 @@ class IssueApiService {
       throw Exception('Failed to fetch status updates: ${e.toString()}');
     }
   }
+
+  /// Create a petty cash request for an issue.
+  Future<PettyCashRequestModel> createPettyCashRequest({
+    required int issueId,
+    required double amount,
+    required String description,
+    required int technicianId,
+  }) async {
+    try {
+      final response = await _apiService.post('/cash-requests', {
+        'issue_id': issueId,
+        'amount': amount,
+        'description': description,
+        'technician_id': technicianId,
+      });
+
+      final data = response['data'] as Map<String, dynamic>;
+      return PettyCashRequestModel.fromJson(data);
+    } catch (e) {
+      throw Exception('Failed to create petty cash request: ${e.toString()}');
+    }
+  }
+
+  /// Update a petty cash request (approve, reject, cancel, undo).
+  /// Backend expects PUT with optional amount, description, status.
+  Future<PettyCashRequestModel> updatePettyCashRequest({
+    required dynamic requestId,
+    required String action,
+    required int issueId,
+    required int userId,
+  }) async {
+    try {
+      final String status = action == 'approve'
+          ? 'approved'
+          : action == 'reject'
+              ? 'rejected'
+              : 'pending';
+      final response = await _apiService.put('/cash-requests/$requestId', {
+        'status': status,
+      });
+
+      final data = response['data'] as Map<String, dynamic>;
+      return PettyCashRequestModel.fromJson(data);
+    } catch (e) {
+      throw Exception('Failed to $action petty cash request: ${e.toString()}');
+    }
+  }
 }

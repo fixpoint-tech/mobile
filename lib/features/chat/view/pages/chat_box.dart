@@ -715,15 +715,32 @@ class _ChatPageState extends State<ChatPage> {
           try {
             _showLoadingDialog('Submitting petty cash request...');
             
-            // Emit socket event for petty cash request
-            _socket?.emit('petty_cash_request', {
-              'issue_id': _issue!.id,
-              'amount': amount,
-              'description': description,
-              'technician_id': AuthService.instance.currentUser?.id,
-            });
+            final currentUser = AuthService.instance.currentUser;
+            if (currentUser == null) {
+              if (mounted) Navigator.of(context).pop();
+              return;
+            }
+
+            // Use issue's assigned technician id (backend expects Technicians.id, not User.id)
+            final technicianId = _issue!.technicianId ?? currentUser.id;
+            final newRequest = await _issueApiService.createPettyCashRequest(
+              issueId: _issue!.id,
+              amount: amount,
+              description: description,
+              technicianId: technicianId,
+            );
             
             if (mounted) Navigator.of(context).pop();
+            
+            // Update local state with the API response
+            setState(() {
+              final currentRequests = List<PettyCashRequestModel>.from(
+                _issue!.pettyCashRequests ?? [],
+              );
+              currentRequests.add(newRequest);
+              _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
+            });
+            _scrollToBottom();
             
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -918,14 +935,33 @@ class _ChatPageState extends State<ChatPage> {
     _showLoadingDialog('$actionLabel petty cash request...');
 
     try {
-      _socket?.emit('petty_cash_action', {
-        'request_id': requestId,
-        'action': action,
-        'issue_id': _issue!.id,
-        'user_id': AuthService.instance.currentUser?.id,
-      });
+      final currentUser = AuthService.instance.currentUser;
+      if (currentUser == null) {
+        if (mounted) Navigator.of(context).pop();
+        return;
+      }
+
+      // Call REST API to update petty cash request
+      final updatedRequest = await _issueApiService.updatePettyCashRequest(
+        requestId: requestId,
+        action: action,
+        issueId: _issue!.id,
+        userId: currentUser.id,
+      );
 
       if (mounted) Navigator.of(context).pop();
+
+      // Update local state with the API response
+      setState(() {
+        final currentRequests = List<PettyCashRequestModel>.from(
+          _issue!.pettyCashRequests ?? [],
+        );
+        final index = currentRequests.indexWhere((r) => r.id == updatedRequest.id);
+        if (index != -1) {
+          currentRequests[index] = updatedRequest;
+        }
+        _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
+      });
 
       final successMessage = action == 'approve'
           ? 'Petty cash request approved'
@@ -1115,8 +1151,6 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final issue = _issue;
-    // ignore: avoid_print
-    print('Received issue in ChatPage: ${issue?.toJson()}');
 
     if (issue == null) {
       return Scaffold(
@@ -1341,9 +1375,11 @@ class _ChatPageState extends State<ChatPage> {
         });
       }
 
-    // Add petty cash requests
+    // Add petty cash requests — technician (sender) sees on right, others on left
     if (issue.pettyCashRequests != null) {
       for (final request in issue.pettyCashRequests!) {
+        final isSender = myRole == UserRole.technician &&
+            request.technicianId == issue.technicianId;
         chatItems.add({
           'type': 'petty_cash',
           'createdAt': request.createdAt,
@@ -1354,7 +1390,7 @@ class _ChatPageState extends State<ChatPage> {
           'description': request.description,
           'status': request.status,
           'requestId': request.id,
-          'alignRight': false,
+          'alignRight': isSender,
         });
       }
     }
