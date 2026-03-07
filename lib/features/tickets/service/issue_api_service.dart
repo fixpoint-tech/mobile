@@ -20,9 +20,11 @@ class IssueApiService {
       final queryParams = <String, String>{};
       if (branchId != null) queryParams['branch_id'] = branchId.toString();
       if (managerId != null) queryParams['manager_id'] = managerId.toString();
-      if (technicianId != null) queryParams['technician_id'] = technicianId.toString();
+      if (technicianId != null)
+        queryParams['technician_id'] = technicianId.toString();
       if (maintenanceExecutiveId != null) {
-        queryParams['maintenance_executive_id'] = maintenanceExecutiveId.toString();
+        queryParams['maintenance_executive_id'] = maintenanceExecutiveId
+            .toString();
       }
       if (status != null) queryParams['status'] = status;
       if (includeRelations) queryParams['include_relations'] = 'true';
@@ -30,13 +32,13 @@ class IssueApiService {
       final queryString = queryParams.entries
           .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
           .join('&');
-      
+
       final endpoint = queryString.isEmpty ? '/issues' : '/issues?$queryString';
       final response = await _apiService.get(endpoint);
-      
+
       // Backend returns: { success: true, data: [...], count, total, message }
       final List<dynamic> issuesJson = response['data'] as List<dynamic>;
-      
+
       return issuesJson.map((json) => IssueModel.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Failed to fetch issues: ${e.toString()}');
@@ -47,10 +49,10 @@ class IssueApiService {
   Future<IssueModel> createIssue(IssueModel issue) async {
     try {
       final response = await _apiService.post('/issues', issue.toJson());
-      
+
       // Backend returns: { success: true, data: {...}, message }
       final issueData = response['data'] as Map<String, dynamic>;
-      
+
       return IssueModel.fromJson(issueData);
     } catch (e) {
       throw Exception('Failed to create issue: ${e.toString()}');
@@ -58,13 +60,16 @@ class IssueApiService {
   }
 
   /// Update issue
-  Future<IssueModel> updateIssue(int issueId, Map<String, dynamic> updates) async {
+  Future<IssueModel> updateIssue(
+    int issueId,
+    Map<String, dynamic> updates,
+  ) async {
     try {
       final response = await _apiService.put('/issues/$issueId', updates);
-      
+
       // Backend returns: { success: true, data: {...}, message }
       final issueData = response['data'] as Map<String, dynamic>;
-      
+
       return IssueModel.fromJson(issueData);
     } catch (e) {
       throw Exception('Failed to update issue: ${e.toString()}');
@@ -139,17 +144,20 @@ class IssueApiService {
   }
 
   /// Get issue by ID with relations
-  Future<IssueModel> getIssueById(int issueId, {bool includeRelations = true}) async {
+  Future<IssueModel> getIssueById(
+    int issueId, {
+    bool includeRelations = true,
+  }) async {
     try {
-      final endpoint = includeRelations 
+      final endpoint = includeRelations
           ? '/issues/$issueId?include_relations=true'
           : '/issues/$issueId';
-      
+
       final response = await _apiService.get(endpoint);
-      
+
       // Backend returns: { success: true, data: {...}, message }
       final issueData = response['data'] as Map<String, dynamic>;
-      
+
       return IssueModel.fromJson(issueData);
     } catch (e) {
       throw Exception('Failed to fetch issue: ${e.toString()}');
@@ -163,7 +171,7 @@ class IssueApiService {
         '/issues/$issueId/assign-technician',
         {'technician_id': technicianId},
       );
-      
+
       final issueData = response['data'] as Map<String, dynamic>;
       return IssueModel.fromJson(issueData);
     } catch (e) {
@@ -172,17 +180,22 @@ class IssueApiService {
   }
 
   /// Assign maintenance executive to issue
-  Future<IssueModel> assignMaintenanceExecutive(int issueId, int executiveId) async {
+  Future<IssueModel> assignMaintenanceExecutive(
+    int issueId,
+    int executiveId,
+  ) async {
     try {
       final response = await _apiService.post(
         '/issues/$issueId/assign-maintenance-executive',
         {'executive_id': executiveId},
       );
-      
+
       final issueData = response['data'] as Map<String, dynamic>;
       return IssueModel.fromJson(issueData);
     } catch (e) {
-      throw Exception('Failed to assign maintenance executive: ${e.toString()}');
+      throw Exception(
+        'Failed to assign maintenance executive: ${e.toString()}',
+      );
     }
   }
 
@@ -193,7 +206,7 @@ class IssueApiService {
         '/issues/$issueId/assign-third-party',
         {'third_party_id': thirdPartyId},
       );
-      
+
       final issueData = response['data'] as Map<String, dynamic>;
       return IssueModel.fromJson(issueData);
     } catch (e) {
@@ -230,7 +243,10 @@ class IssueApiService {
         requestBody['image_url'] = imageUrl;
       }
 
-      final response = await _apiService.post('/issues/$issueId/statuses', requestBody);
+      final response = await _apiService.post(
+        '/issues/$issueId/statuses',
+        requestBody,
+      );
 
       final data = response['data'] as Map<String, dynamic>;
       return StatusModel.fromJson(data);
@@ -244,7 +260,9 @@ class IssueApiService {
     try {
       final response = await _apiService.get('/issues/$issueId/statuses');
       final List<dynamic> data = response['data'] as List<dynamic>;
-      return data.map((x) => StatusModel.fromJson(x as Map<String, dynamic>)).toList();
+      return data
+          .map((x) => StatusModel.fromJson(x as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       throw Exception('Failed to fetch status updates: ${e.toString()}');
     }
@@ -284,8 +302,8 @@ class IssueApiService {
       final String status = action == 'approve'
           ? 'approved'
           : action == 'reject'
-              ? 'rejected'
-              : 'pending';
+          ? 'rejected'
+          : 'pending';
       final response = await _apiService.put('/cash-requests/$requestId', {
         'status': status,
       });

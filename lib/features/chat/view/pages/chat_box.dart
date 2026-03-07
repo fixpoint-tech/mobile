@@ -18,7 +18,6 @@ import 'package:mobile/features/tickets/service/issue_api_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:mobile/core/config/api_config.dart';
 
-
 class ChatPage extends StatefulWidget {
   static const String routeName = '/chat';
   const ChatPage({super.key});
@@ -75,14 +74,16 @@ class _ChatPageState extends State<ChatPage> {
 
     print('Connecting to socket: $socketUrl');
 
-    _socket = IO.io(socketUrl, IO.OptionBuilder()
-      .setTransports(['websocket'])
-      .setAuth({
-        'userId': currentUser.id.toString(),
-        'role': currentUser.role,
-      })
-      .disableAutoConnect()
-      .build()
+    _socket = IO.io(
+      socketUrl,
+      IO.OptionBuilder()
+          .setTransports(['websocket'])
+          .setAuth({
+            'userId': currentUser.id.toString(),
+            'role': currentUser.role,
+          })
+          .disableAutoConnect()
+          .build(),
     );
 
     _socket!.connect();
@@ -110,12 +111,12 @@ class _ChatPageState extends State<ChatPage> {
       if (data is Map<String, dynamic>) {
         final text = data['text'];
         final senderId = int.tryParse(data['from'].toString()) ?? 0;
-        
+
         // Ignore own messages as they are added optimistically
         if (senderId == AuthService.instance.currentUser?.id) {
           return;
         }
-        
+
         // Find sender name
         String senderName = 'Unknown';
         if (_issue?.manager?.user?.id == senderId) {
@@ -127,16 +128,16 @@ class _ChatPageState extends State<ChatPage> {
         } else if (AuthService.instance.currentUser?.id == senderId) {
           senderName = AuthService.instance.currentUser!.name;
         }
-        
+
         final newMessage = MessageModel(
-           id: DateTime.now().millisecondsSinceEpoch,
-           body: text.toString(),
-           senderId: senderId,
-           createdAt: DateTime.now(),
-           sender: UserInfo(id: senderId, name: senderName, email: ''),
-           receiverId: null, 
+          id: DateTime.now().millisecondsSinceEpoch,
+          body: text.toString(),
+          senderId: senderId,
+          createdAt: DateTime.now(),
+          sender: UserInfo(id: senderId, name: senderName, email: ''),
+          receiverId: null,
         );
-        
+
         if (mounted) {
           setState(() {
             _realtimeMessages.add(newMessage);
@@ -145,35 +146,40 @@ class _ChatPageState extends State<ChatPage> {
         }
       }
     });
-    
+
     _socket!.on('issue_update', (data) {
       print('Received issue update: $data');
 
       // Handle Petty Cash Update
-      if (data is Map<String, dynamic> && data.containsKey('amount') && data.containsKey('technician_id')) {
-         if (mounted && _issue != null) {
-            try {
-              final newRequest = PettyCashRequestModel.fromJson(data);
-              final currentRequests = List<PettyCashRequestModel>.from(_issue!.pettyCashRequests ?? []);
-              
-              final index = currentRequests.indexWhere((r) => r.id == newRequest.id);
-              if (index != -1) {
-                currentRequests[index] = newRequest;
-              } else {
-                currentRequests.add(newRequest);
-              }
-              
-              setState(() {
-                _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
-              });
-              _scrollToBottom();
-            } catch (e) {
-              print('Error parsing petty cash update: $e');
-            }
-         }
-         return;
-      }
+      if (data is Map<String, dynamic> &&
+          data.containsKey('amount') &&
+          data.containsKey('technician_id')) {
+        if (mounted && _issue != null) {
+          try {
+            final newRequest = PettyCashRequestModel.fromJson(data);
+            final currentRequests = List<PettyCashRequestModel>.from(
+              _issue!.pettyCashRequests ?? [],
+            );
 
+            final index = currentRequests.indexWhere(
+              (r) => r.id == newRequest.id,
+            );
+            if (index != -1) {
+              currentRequests[index] = newRequest;
+            } else {
+              currentRequests.add(newRequest);
+            }
+
+            setState(() {
+              _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
+            });
+            _scrollToBottom();
+          } catch (e) {
+            print('Error parsing petty cash update: $e');
+          }
+        }
+        return;
+      }
     });
 
     // ── Outside party update listener ──
@@ -183,7 +189,8 @@ class _ChatPageState extends State<ChatPage> {
         try {
           final newReq = OutsidePartyRequestModel.fromJson(data);
           final current = List<OutsidePartyRequestModel>.from(
-              _issue!.outsidePartyRequests ?? []);
+            _issue!.outsidePartyRequests ?? [],
+          );
           final idx = current.indexWhere((r) => r.id == newReq.id);
           if (idx != -1) {
             current[idx] = newReq;
@@ -213,20 +220,26 @@ class _ChatPageState extends State<ChatPage> {
               maintenanceExecutiveId: updateData['maintenance_executive_id'],
               technicianId: updateData['technician_id'],
               thirdPartyId: updateData['third_party_id'],
-              maintenanceExecutiveAssignedAt: updateData['maintenance_executive_assigned_at'] != null
-                  ? DateTime.parse(updateData['maintenance_executive_assigned_at'])
+              maintenanceExecutiveAssignedAt:
+                  updateData['maintenance_executive_assigned_at'] != null
+                  ? DateTime.parse(
+                      updateData['maintenance_executive_assigned_at'],
+                    )
                   : null,
               technicianAssignedAt: updateData['technician_assigned_at'] != null
                   ? DateTime.parse(updateData['technician_assigned_at'])
                   : null,
-              thirdPartyAssignedAt: updateData['third_party_assigned_at'] != null
+              thirdPartyAssignedAt:
+                  updateData['third_party_assigned_at'] != null
                   ? DateTime.parse(updateData['third_party_assigned_at'])
                   : null,
               updatedAt: updateData['updatedAt'] != null
                   ? DateTime.parse(updateData['updatedAt'])
                   : null,
               maintenanceExecutive: updateData['maintenanceExecutive'] != null
-                  ? MaintenanceExecutiveInfo.fromJson(updateData['maintenanceExecutive'])
+                  ? MaintenanceExecutiveInfo.fromJson(
+                      updateData['maintenanceExecutive'],
+                    )
                   : null,
               technician: updateData['technician'] != null
                   ? TechnicianInfo.fromJson(updateData['technician'])
@@ -262,7 +275,9 @@ class _ChatPageState extends State<ChatPage> {
           }
 
           // Avoid duplicating if already present in the list
-          final currentStatuses = List<StatusModel>.from(_issue!.statuses ?? []);
+          final currentStatuses = List<StatusModel>.from(
+            _issue!.statuses ?? [],
+          );
           final exists = currentStatuses.any((s) => s.id == newStatusEntry.id);
 
           if (!exists) {
@@ -279,24 +294,26 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-
-
   void _sendMessage(String text, String? target) {
     if (_issue?.maintenanceExecutive == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cannot send message: No Maintenance Executive accepted.')),
+        const SnackBar(
+          content: Text(
+            'Cannot send message: No Maintenance Executive accepted.',
+          ),
+        ),
       );
       return;
     }
 
     if (_socket == null || !_isConnected) {
-       print('Not connected');
-       ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(content: Text('Not connected to chat server')),
-       );
-       return;
+      print('Not connected');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not connected to chat server')),
+      );
+      return;
     }
-    
+
     final authService = AuthService.instance;
     final currentUser = authService.currentUser;
     if (currentUser == null) return;
@@ -317,19 +334,19 @@ class _ChatPageState extends State<ChatPage> {
     };
 
     if (targetUserId != null) {
-       // Send to specific user room
-       _socket!.emit('send_message_to_user', [payload, targetUserId]);
+      // Send to specific user room
+      _socket!.emit('send_message_to_user', [payload, targetUserId]);
     } else {
-       // Fallback to broadcast if no specific target found or implied
-       _socket!.emit('send_message_to_all', payload);
+      // Fallback to broadcast if no specific target found or implied
+      _socket!.emit('send_message_to_all', payload);
     }
-    
+
     // Optimistic update
     UserInfo? receiverInfo;
     if (targetUserId != null) {
       String receiverName = 'Unknown';
       String receiverEmail = '';
-      
+
       if (_issue?.manager?.user?.id.toString() == targetUserId) {
         receiverName = _issue!.manager!.user!.name;
         receiverEmail = _issue!.manager!.user!.email;
@@ -337,27 +354,32 @@ class _ChatPageState extends State<ChatPage> {
         receiverName = _issue!.technician!.user!.name;
         // technician user might not have email in this model structure if not loaded, but UserInfo requires it.
         // Assuming it's available or empty string.
-        receiverEmail = _issue!.technician!.user!.email; 
-      } else if (_issue?.maintenanceExecutive?.user?.id.toString() == targetUserId) {
+        receiverEmail = _issue!.technician!.user!.email;
+      } else if (_issue?.maintenanceExecutive?.user?.id.toString() ==
+          targetUserId) {
         receiverName = _issue!.maintenanceExecutive!.user!.name;
         receiverEmail = _issue!.maintenanceExecutive!.user!.email;
       }
-      
+
       receiverInfo = UserInfo(
-        id: int.parse(targetUserId), 
-        name: receiverName, 
-        email: receiverEmail
+        id: int.parse(targetUserId),
+        name: receiverName,
+        email: receiverEmail,
       );
     }
 
     final newMessage = MessageModel(
-       id: DateTime.now().millisecondsSinceEpoch,
-       body: text,
-       senderId: currentUser.id,
-       createdAt: DateTime.now(),
-       sender: UserInfo(id: currentUser.id, name: currentUser.name, email: currentUser.email),
-       receiverId: targetUserId != null ? int.tryParse(targetUserId) : null,
-       receiver: receiverInfo,
+      id: DateTime.now().millisecondsSinceEpoch,
+      body: text,
+      senderId: currentUser.id,
+      createdAt: DateTime.now(),
+      sender: UserInfo(
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+      ),
+      receiverId: targetUserId != null ? int.tryParse(targetUserId) : null,
+      receiver: receiverInfo,
     );
 
     setState(() {
@@ -388,26 +410,28 @@ class _ChatPageState extends State<ChatPage> {
           try {
             // Show loading indicator
             _showLoadingDialog('Assigning technician...');
-            
+
             // Call API to assign technician
             final updatedIssue = await _issueApiService.assignTechnician(
               _issue!.id,
               technician.id,
             );
-            
+
             // Dismiss loading
             if (mounted) Navigator.of(context).pop();
-            
+
             // Update local state
             setState(() {
               _issue = updatedIssue;
             });
-            
+
             // Show success message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Technician ${technician.name} assigned successfully'),
+                  content: Text(
+                    'Technician ${technician.name} assigned successfully',
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -415,7 +439,7 @@ class _ChatPageState extends State<ChatPage> {
           } catch (e) {
             // Dismiss loading
             if (mounted) Navigator.of(context).pop();
-            
+
             // Show error message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -434,26 +458,28 @@ class _ChatPageState extends State<ChatPage> {
           try {
             // Show loading indicator
             _showLoadingDialog('Assigning third party...');
-            
+
             // Call API to assign third party
             final updatedIssue = await _issueApiService.assignThirdParty(
               _issue!.id,
               thirdParty.id,
             );
-            
+
             // Dismiss loading
             if (mounted) Navigator.of(context).pop();
-            
+
             // Update local state
             setState(() {
               _issue = updatedIssue;
             });
-            
+
             // Show success message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Third party ${thirdParty.organization} assigned successfully'),
+                  content: Text(
+                    'Third party ${thirdParty.organization} assigned successfully',
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -461,12 +487,14 @@ class _ChatPageState extends State<ChatPage> {
           } catch (e) {
             // Dismiss loading
             if (mounted) Navigator.of(context).pop();
-            
+
             // Show error message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Failed to assign third party: ${e.toString()}'),
+                  content: Text(
+                    'Failed to assign third party: ${e.toString()}',
+                  ),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -480,7 +508,7 @@ class _ChatPageState extends State<ChatPage> {
           try {
             // Show loading indicator
             _showLoadingDialog('Closing issue...');
-            
+
             // Upload image if provided
             String? imageUrl;
             if (imageFile != null) {
@@ -495,13 +523,13 @@ class _ChatPageState extends State<ChatPage> {
                 // Continue with closing even if image upload fails
               }
             }
-            
+
             // 1. Update issue status to closed
             final updatedIssue = await _issueApiService.updateIssueStatus(
               _issue!.id,
               IssueStatus.closed,
             );
-            
+
             // 2. Create a status log entry so the bubble shows in chat
             StatusModel? newStatusEntry;
             final currentUser = AuthService.instance.currentUser;
@@ -525,21 +553,25 @@ class _ChatPageState extends State<ChatPage> {
                 }
               } catch (statusErr) {
                 _pendingStatusIds.remove(tempId);
-                debugPrint('Status log entry failed (non-blocking): $statusErr');
+                debugPrint(
+                  'Status log entry failed (non-blocking): $statusErr',
+                );
               }
             }
-            
+
             // Dismiss loading
             if (mounted) Navigator.of(context).pop();
-            
+
             // Update local state — merge new status entry into issue
             setState(() {
-              final currentStatuses = List<StatusModel>.from(_issue!.statuses ?? []);
+              final currentStatuses = List<StatusModel>.from(
+                _issue!.statuses ?? [],
+              );
               if (newStatusEntry != null) currentStatuses.add(newStatusEntry);
               _issue = updatedIssue.copyWith(statuses: currentStatuses);
             });
             _scrollToBottom();
-            
+
             // Show success message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -552,7 +584,7 @@ class _ChatPageState extends State<ChatPage> {
           } catch (e) {
             // Dismiss loading
             if (mounted) Navigator.of(context).pop();
-            
+
             // Show error message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -567,137 +599,148 @@ class _ChatPageState extends State<ChatPage> {
         break;
 
       case 'Update the Status':
-        showUpdateStatusDialog(
-          context,
-          _issue!.status.value,
-          (newStatus, description, imageFiles) async {
-            try {
-              // Show loading indicator
-              _showLoadingDialog('Updating status...');
-              
-              // Upload images if provided
-              List<String>? imageUrls;
-              if (imageFiles.isNotEmpty) {
-                try {
-                  imageUrls = [];
-                  for (final imageFile in imageFiles) {
-                    final uploadedFile = await UploadService.instance.uploadFile(
-                      imageFile,
-                      issueId: _issue!.id,
-                    );
-                    imageUrls.add(uploadedFile.url);
-                  }
-                } catch (uploadError) {
-                  debugPrint('Failed to upload images: $uploadError');
-                  // Continue even if image upload fails
-                  imageUrls = null;
-                }
-              }
-              
-              // Map dialog status value to backend status
-              final backendStatus = _mapDialogStatusToBackend(newStatus);
-              
-              // Map dialog status value to Statuses table status_type
-              final statusType = _mapDialogStatusToStatusType(newStatus);
-              
-              // 1. Update the issue status
-              final updatedIssue = await _issueApiService.updateIssueStatus(
-                _issue!.id,
-                IssueStatus.fromString(backendStatus),
-              );
-              
-              // 2. Create a status log entry
-              StatusModel? newStatusEntry;
-              final currentUser = AuthService.instance.currentUser;
-              if (currentUser != null) {
-                final desc = (description?.trim().isNotEmpty == true)
-                    ? description!
-                    : 'Status updated to $statusType';
-                // Use a temporary placeholder ID to mark this as our own event.
-                // Any socket event that arrives while awaiting will be suppressed
-                // by the seen-IDs deduplication in build().
-                const int tempId = -1;
-                _pendingStatusIds.add(tempId);
-                try {
-                  newStatusEntry = await _issueApiService.addStatusUpdate(
+        showUpdateStatusDialog(context, _issue!.status.value, (
+          newStatus,
+          description,
+          imageFiles,
+        ) async {
+          try {
+            // Show loading indicator
+            _showLoadingDialog('Updating status...');
+
+            // Upload images if provided
+            List<String>? imageUrls;
+            if (imageFiles.isNotEmpty) {
+              try {
+                imageUrls = [];
+                for (final imageFile in imageFiles) {
+                  final uploadedFile = await UploadService.instance.uploadFile(
+                    imageFile,
                     issueId: _issue!.id,
-                    userId: currentUser.id,
-                    description: desc,
-                    imageUrls: imageUrls,
-                    statusType: statusType,
                   );
-                  // Replace temp with the real ID so the socket listener can match it
-                  _pendingStatusIds.remove(tempId);
-                  if (newStatusEntry != null) {
-                    _pendingStatusIds.add(newStatusEntry.id);
-                  }
-                } catch (statusErr) {
-                  _pendingStatusIds.remove(tempId);
-                  debugPrint('Status log entry failed (non-blocking): $statusErr');
+                  imageUrls.add(uploadedFile.url);
                 }
+              } catch (uploadError) {
+                debugPrint('Failed to upload images: $uploadError');
+                // Continue even if image upload fails
+                imageUrls = null;
               }
-              
-              // Dismiss loading
-              if (mounted) Navigator.of(context).pop();
-              
-              // Update local state — merge new status entry into issue
-              setState(() {
-                final currentStatuses = List<StatusModel>.from(_issue!.statuses ?? []);
-                if (newStatusEntry != null) currentStatuses.add(newStatusEntry);
-                _issue = updatedIssue.copyWith(statuses: currentStatuses);
-              });
-              _scrollToBottom();
-              
-              // Show success message
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Status updated to ${statusType.replaceAll('_', ' ')}'),
-                    backgroundColor: Colors.green,
-                  ),
+            }
+
+            // Map dialog status value to backend status
+            final backendStatus = _mapDialogStatusToBackend(newStatus);
+
+            // Map dialog status value to Statuses table status_type
+            final statusType = _mapDialogStatusToStatusType(newStatus);
+
+            // 1. Update the issue status
+            final updatedIssue = await _issueApiService.updateIssueStatus(
+              _issue!.id,
+              IssueStatus.fromString(backendStatus),
+            );
+
+            // 2. Create a status log entry
+            StatusModel? newStatusEntry;
+            final currentUser = AuthService.instance.currentUser;
+            if (currentUser != null) {
+              final desc = (description?.trim().isNotEmpty == true)
+                  ? description!
+                  : 'Status updated to $statusType';
+              // Use a temporary placeholder ID to mark this as our own event.
+              // Any socket event that arrives while awaiting will be suppressed
+              // by the seen-IDs deduplication in build().
+              const int tempId = -1;
+              _pendingStatusIds.add(tempId);
+              try {
+                newStatusEntry = await _issueApiService.addStatusUpdate(
+                  issueId: _issue!.id,
+                  userId: currentUser.id,
+                  description: desc,
+                  imageUrls: imageUrls,
+                  statusType: statusType,
                 );
-              }
-            } catch (e) {
-              // Dismiss loading
-              if (mounted) Navigator.of(context).pop();
-              
-              // Show error message
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to update status: ${e.toString()}'),
-                    backgroundColor: Colors.red,
-                  ),
+                // Replace temp with the real ID so the socket listener can match it
+                _pendingStatusIds.remove(tempId);
+                if (newStatusEntry != null) {
+                  _pendingStatusIds.add(newStatusEntry.id);
+                }
+              } catch (statusErr) {
+                _pendingStatusIds.remove(tempId);
+                debugPrint(
+                  'Status log entry failed (non-blocking): $statusErr',
                 );
               }
             }
-          },
-        );
+
+            // Dismiss loading
+            if (mounted) Navigator.of(context).pop();
+
+            // Update local state — merge new status entry into issue
+            setState(() {
+              final currentStatuses = List<StatusModel>.from(
+                _issue!.statuses ?? [],
+              );
+              if (newStatusEntry != null) currentStatuses.add(newStatusEntry);
+              _issue = updatedIssue.copyWith(statuses: currentStatuses);
+            });
+            _scrollToBottom();
+
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Status updated to ${statusType.replaceAll('_', ' ')}',
+                  ),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            // Dismiss loading
+            if (mounted) Navigator.of(context).pop();
+
+            // Show error message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to update status: ${e.toString()}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        });
         break;
 
       case 'Suggest Outside Support':
         // For technicians suggesting outside support
-        showSuggestOutsidePartyDialog(context, (description, suggestedParty) async {
+        showSuggestOutsidePartyDialog(context, (
+          description,
+          suggestedParty,
+        ) async {
           try {
             _showLoadingDialog('Submitting suggestion...');
-            
+
             // TODO: Implement API endpoint for suggesting third party
             // For now, we'll just show a success message
             // In the future, this should create a suggestion/request record
-            
+
             if (mounted) Navigator.of(context).pop();
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Suggestion for "$suggestedParty" submitted successfully'),
+                  content: Text(
+                    'Suggestion for "$suggestedParty" submitted successfully',
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );
             }
           } catch (e) {
             if (mounted) Navigator.of(context).pop();
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -714,7 +757,7 @@ class _ChatPageState extends State<ChatPage> {
         showRequestPettyCashDialog(context, (amount, description) async {
           try {
             _showLoadingDialog('Submitting petty cash request...');
-            
+
             final currentUser = AuthService.instance.currentUser;
             if (currentUser == null) {
               if (mounted) Navigator.of(context).pop();
@@ -729,9 +772,9 @@ class _ChatPageState extends State<ChatPage> {
               description: description,
               technicianId: technicianId,
             );
-            
+
             if (mounted) Navigator.of(context).pop();
-            
+
             // Update local state with the API response
             setState(() {
               final currentRequests = List<PettyCashRequestModel>.from(
@@ -741,18 +784,20 @@ class _ChatPageState extends State<ChatPage> {
               _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
             });
             _scrollToBottom();
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Petty cash request for Rs. ${amount.toStringAsFixed(2)} submitted'),
+                  content: Text(
+                    'Petty cash request for Rs. ${amount.toStringAsFixed(2)} submitted',
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );
             }
           } catch (e) {
             if (mounted) Navigator.of(context).pop();
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -774,27 +819,29 @@ class _ChatPageState extends State<ChatPage> {
   /// Handle approval actions (approve/reject Pending Resolution or Pending Close)
   Future<void> _handleApprovalAction(String action) async {
     if (_issue == null) return;
-    
+
     final currentUser = AuthService.instance.currentUser;
     if (currentUser == null) return;
 
     if (action.startsWith('approve_')) {
       final isResolution = action == 'approve_resolution';
-      final newBackendStatus = isResolution ? IssueStatus.done : IssueStatus.closed;
+      final newBackendStatus = isResolution
+          ? IssueStatus.done
+          : IssueStatus.closed;
       final newStatusType = isResolution ? 'Resolved' : 'Closed';
       final description = isResolution
           ? 'Resolution approved by ${currentUser.name}'
           : 'Close approved by ${currentUser.name}';
-          
+
       try {
         _showLoadingDialog('Approving...');
-        
+
         // 1. Update issue status
         final updatedIssue = await _issueApiService.updateIssueStatus(
           _issue!.id,
           newBackendStatus,
         );
-        
+
         // 2. Add status log entry
         StatusModel? newStatusEntry;
         const int _approveTemp = -2;
@@ -812,11 +859,13 @@ class _ChatPageState extends State<ChatPage> {
           _pendingStatusIds.remove(_approveTemp);
           debugPrint('Status log entry failed: $e');
         }
-        
+
         if (mounted) Navigator.of(context).pop();
-        
+
         setState(() {
-          final currentStatuses = List<StatusModel>.from(_issue!.statuses ?? []);
+          final currentStatuses = List<StatusModel>.from(
+            _issue!.statuses ?? [],
+          );
           if (newStatusEntry != null) currentStatuses.add(newStatusEntry);
           _issue = updatedIssue.copyWith(statuses: currentStatuses);
         });
@@ -825,14 +874,17 @@ class _ChatPageState extends State<ChatPage> {
         if (mounted) Navigator.of(context).pop();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to approve: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Failed to approve: $e'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } else if (action.startsWith('reject_')) {
       final isResolution = action == 'reject_resolution';
       final statusTypeLabel = isResolution ? 'Resolution' : 'Close request';
-      
+
       // prompt for rejection reason
       final reasonController = TextEditingController();
       final reason = await showDialog<String>(
@@ -853,7 +905,10 @@ class _ChatPageState extends State<ChatPage> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 if (reasonController.text.trim().isNotEmpty) {
                   Navigator.of(ctx).pop(reasonController.text.trim());
@@ -864,18 +919,18 @@ class _ChatPageState extends State<ChatPage> {
           ],
         ),
       );
-      
+
       if (reason == null || reason.isEmpty) return;
-      
+
       try {
         _showLoadingDialog('Rejecting...');
-        
+
         // 1. Revert issue status to In Progress
         final updatedIssue = await _issueApiService.updateIssueStatus(
           _issue!.id,
           IssueStatus.inProgress,
         );
-        
+
         // 2. Add status log entry
         StatusModel? newStatusEntry;
         const int _rejectTemp = -3;
@@ -893,11 +948,13 @@ class _ChatPageState extends State<ChatPage> {
           _pendingStatusIds.remove(_rejectTemp);
           debugPrint('Status log entry failed: $e');
         }
-        
+
         if (mounted) Navigator.of(context).pop();
-        
+
         setState(() {
-          final currentStatuses = List<StatusModel>.from(_issue!.statuses ?? []);
+          final currentStatuses = List<StatusModel>.from(
+            _issue!.statuses ?? [],
+          );
           if (newStatusEntry != null) currentStatuses.add(newStatusEntry);
           _issue = updatedIssue.copyWith(statuses: currentStatuses);
         });
@@ -906,7 +963,10 @@ class _ChatPageState extends State<ChatPage> {
         if (mounted) Navigator.of(context).pop();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to reject: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Failed to reject: $e'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -928,10 +988,10 @@ class _ChatPageState extends State<ChatPage> {
     final actionLabel = action == 'approve'
         ? 'Approving'
         : action == 'cancel'
-            ? 'Canceling'
-            : action == 'undo'
-                ? 'Undoing'
-                : 'Rejecting';
+        ? 'Canceling'
+        : action == 'undo'
+        ? 'Undoing'
+        : 'Rejecting';
     _showLoadingDialog('$actionLabel petty cash request...');
 
     try {
@@ -956,7 +1016,9 @@ class _ChatPageState extends State<ChatPage> {
         final currentRequests = List<PettyCashRequestModel>.from(
           _issue!.pettyCashRequests ?? [],
         );
-        final index = currentRequests.indexWhere((r) => r.id == updatedRequest.id);
+        final index = currentRequests.indexWhere(
+          (r) => r.id == updatedRequest.id,
+        );
         if (index != -1) {
           currentRequests[index] = updatedRequest;
         }
@@ -966,11 +1028,11 @@ class _ChatPageState extends State<ChatPage> {
       final successMessage = action == 'approve'
           ? 'Petty cash request approved'
           : action == 'cancel'
-              ? 'Petty cash request canceled'
-              : action == 'undo'
-                  ? 'Decision undone — request is now pending'
-                  : 'Petty cash request rejected';
-      
+          ? 'Petty cash request canceled'
+          : action == 'undo'
+          ? 'Decision undone — request is now pending'
+          : 'Petty cash request rejected';
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -996,7 +1058,9 @@ class _ChatPageState extends State<ChatPage> {
   void _handleOutsidePartyAction(dynamic requestId, String action) async {
     if (requestId == null) return;
 
-    _showLoadingDialog('${action == 'approve' ? 'Approving' : 'Rejecting'} outside party request...');
+    _showLoadingDialog(
+      '${action == 'approve' ? 'Approving' : 'Rejecting'} outside party request...',
+    );
 
     try {
       _socket?.emit('outside_party_action', {
@@ -1011,9 +1075,11 @@ class _ChatPageState extends State<ChatPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(action == 'approve'
-                ? 'Outside party request approved ✓'
-                : 'Outside party request rejected'),
+            content: Text(
+              action == 'approve'
+                  ? 'Outside party request approved ✓'
+                  : 'Outside party request rejected',
+            ),
             backgroundColor: action == 'approve' ? Colors.green : Colors.orange,
           ),
         );
@@ -1034,7 +1100,7 @@ class _ChatPageState extends State<ChatPage> {
   /// Show the "Suggest Outside Party" dialog for technicians
   void _showSuggestOutsidePartyDialog() {
     final vendorController = TextEditingController();
-    final descController   = TextEditingController();
+    final descController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -1056,9 +1122,12 @@ class _ChatPageState extends State<ChatPage> {
                   labelText: 'Suggested Party / Vendor *',
                   hintText: 'e.g. Oven Builders Pvt Ltd',
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty)
                     ? 'Vendor name is required'
@@ -1072,9 +1141,12 @@ class _ChatPageState extends State<ChatPage> {
                   labelText: 'Description *',
                   hintText: 'Why is an outside party needed?',
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty)
                     ? 'Description is required'
@@ -1093,7 +1165,8 @@ class _ChatPageState extends State<ChatPage> {
               backgroundColor: const Color(0xFF8B5CF6),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(8),
+              ),
               elevation: 0,
             ),
             onPressed: () {
@@ -1159,16 +1232,15 @@ class _ChatPageState extends State<ChatPage> {
       );
     }
 
-
-
     // Get current user from AuthService
     final authService = AuthService.instance;
     final currentUser = authService.currentUser;
 
     if (currentUser == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -1190,8 +1262,9 @@ class _ChatPageState extends State<ChatPage> {
     if (role == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         authService.clearAuth();
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       });
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -1212,32 +1285,33 @@ class _ChatPageState extends State<ChatPage> {
       };
     } else if (currentUserId == 'me') {
       // Fallback for test mode
-      participants['u_me'] = {
-        'name': 'You',
-        'avatarUrl': null,
-        'userId': 'me'
-      };
+      participants['u_me'] = {'name': 'You', 'avatarUrl': null, 'userId': 'me'};
     }
 
     // Populate participants from issue data with real profile pictures
     if (issue.manager?.user != null) {
       participants['u_mgr_${issue.manager!.id}'] = {
         'name': issue.manager!.user!.name,
-        'avatarUrl': issue.manager!.user!.profilePicture, // Use real profile picture
+        'avatarUrl':
+            issue.manager!.user!.profilePicture, // Use real profile picture
         'userId': issue.manager!.user!.id.toString(),
       };
     }
     if (issue.technician?.user != null) {
       participants['u_tech_${issue.technician!.id}'] = {
         'name': issue.technician!.user!.name,
-        'avatarUrl': issue.technician!.user!.profilePicture, // Use real profile picture
+        'avatarUrl':
+            issue.technician!.user!.profilePicture, // Use real profile picture
         'userId': issue.technician!.user!.id.toString(),
       };
     }
     if (issue.maintenanceExecutive?.user != null) {
       participants['u_exec_${issue.maintenanceExecutive!.id}'] = {
         'name': issue.maintenanceExecutive!.user!.name,
-        'avatarUrl': issue.maintenanceExecutive!.user!.profilePicture, // Use real profile picture
+        'avatarUrl': issue
+            .maintenanceExecutive!
+            .user!
+            .profilePicture, // Use real profile picture
         'userId': issue.maintenanceExecutive!.user!.id.toString(),
       };
     }
@@ -1259,7 +1333,10 @@ class _ChatPageState extends State<ChatPage> {
           '${issue.createdAt.hour}:${issue.createdAt.minute.toString().padLeft(2, '0')} ${issue.createdAt.hour < 12 ? 'AM' : 'PM'}',
       'severity': severityInfo['label'], // Dynamic severity based on status
       'severityColor': severityInfo['color'], // Dynamic color based on status
-      'attachments': <String>[], // Empty list - attachments will be populated when file upload is implemented
+      'attachments':
+          <
+            String
+          >[], // Empty list - attachments will be populated when file upload is implemented
       'creatorId': 'u_mgr_${issue.managerId}',
       'occurrenceTimeText':
           '${issue.createdAt.hour}:${issue.createdAt.minute.toString().padLeft(2, '0')} ${issue.createdAt.hour < 12 ? 'AM' : 'PM'}',
@@ -1274,7 +1351,7 @@ class _ChatPageState extends State<ChatPage> {
         'technicianName': issue.technician?.user?.name ?? 'Technician',
         'timeText':
             '${issue.technicianAssignedAt!.hour}:${issue.technicianAssignedAt!.minute.toString().padLeft(2, '0')} ${issue.technicianAssignedAt!.hour < 12 ? 'AM' : 'PM'}',
-  'creatorId': 'u_mgr_${issue.managerId}',
+        'creatorId': 'u_mgr_${issue.managerId}',
         'alignRight': false,
       });
     }
@@ -1284,10 +1361,11 @@ class _ChatPageState extends State<ChatPage> {
         'type': 'assignment',
         'createdAt': issue.maintenanceExecutiveAssignedAt,
         'title': 'Maintenance Executive Accepted',
-        'technicianName': issue.maintenanceExecutive?.user?.name ?? 'Maintenance Executive',
+        'technicianName':
+            issue.maintenanceExecutive?.user?.name ?? 'Maintenance Executive',
         'timeText':
             '${issue.maintenanceExecutiveAssignedAt!.hour}:${issue.maintenanceExecutiveAssignedAt!.minute.toString().padLeft(2, '0')} ${issue.maintenanceExecutiveAssignedAt!.hour < 12 ? 'AM' : 'PM'}',
-  'creatorId': 'u_mgr_${issue.managerId}',
+        'creatorId': 'u_mgr_${issue.managerId}',
         'alignRight': false,
       });
     }
@@ -1300,12 +1378,13 @@ class _ChatPageState extends State<ChatPage> {
         'technicianName': issue.thirdParty?.organization ?? 'Third Party',
         'timeText':
             '${issue.thirdPartyAssignedAt!.hour}:${issue.thirdPartyAssignedAt!.minute.toString().padLeft(2, '0')} ${issue.thirdPartyAssignedAt!.hour < 12 ? 'AM' : 'PM'}',
-  'creatorId': 'u_mgr_${issue.managerId}',
+        'creatorId': 'u_mgr_${issue.managerId}',
         'alignRight': false,
       });
     }
 
-    if (issue.status == IssueStatus.done || issue.status == IssueStatus.closed) {
+    if (issue.status == IssueStatus.done ||
+        issue.status == IssueStatus.closed) {
       chatItems.add({
         'type': 'issue_closed',
         'createdAt': issue.updatedAt,
@@ -1320,65 +1399,68 @@ class _ChatPageState extends State<ChatPage> {
 
     // Add messages from the issue AND realtime messages
     final allMessages = [...?issue.messages, ..._realtimeMessages];
-    
-    for (final message in allMessages) {
-        // Filter messages for non-executive roles
-        if (myRole != UserRole.executive) {
-          final msgSenderId = message.sender.id.toString();
-          final msgReceiverId = message.receiver?.id.toString();
-          // Only show if I am the sender or the receiver OR if it is a broadcast
-          if (msgSenderId != currentUserId && msgReceiverId != currentUserId && msgReceiverId != null) {
-            continue;
-          }
-        }
 
-        // Find or create participant key for sender
-        final senderIdStr = message.sender.id.toString();
-        final senderKey = participants.keys.firstWhere(
-          (k) => participants[k]?['userId'] == senderIdStr,
+    for (final message in allMessages) {
+      // Filter messages for non-executive roles
+      if (myRole != UserRole.executive) {
+        final msgSenderId = message.sender.id.toString();
+        final msgReceiverId = message.receiver?.id.toString();
+        // Only show if I am the sender or the receiver OR if it is a broadcast
+        if (msgSenderId != currentUserId &&
+            msgReceiverId != currentUserId &&
+            msgReceiverId != null) {
+          continue;
+        }
+      }
+
+      // Find or create participant key for sender
+      final senderIdStr = message.sender.id.toString();
+      final senderKey = participants.keys.firstWhere(
+        (k) => participants[k]?['userId'] == senderIdStr,
+        orElse: () {
+          final k = 'u_${senderIdStr}';
+          participants[k] = {
+            'name': message.sender.name,
+            'avatarUrl': null,
+            'userId': senderIdStr,
+          };
+          return k;
+        },
+      );
+
+      String? receiverKey;
+      if (message.receiver != null) {
+        final receiverIdStr = message.receiver!.id.toString();
+        receiverKey = participants.keys.firstWhere(
+          (k) => participants[k]?['userId'] == receiverIdStr,
           orElse: () {
-            final k = 'u_${senderIdStr}';
+            final k = 'u_${receiverIdStr}';
             participants[k] = {
-              'name': message.sender.name,
+              'name': message.receiver!.name,
               'avatarUrl': null,
-              'userId': senderIdStr,
+              'userId': receiverIdStr,
             };
             return k;
           },
         );
-
-        String? receiverKey;
-        if (message.receiver != null) {
-          final receiverIdStr = message.receiver!.id.toString();
-          receiverKey = participants.keys.firstWhere(
-            (k) => participants[k]?['userId'] == receiverIdStr,
-            orElse: () {
-              final k = 'u_${receiverIdStr}';
-              participants[k] = {
-                'name': message.receiver!.name,
-                'avatarUrl': null,
-                'userId': receiverIdStr,
-              };
-              return k;
-            },
-          );
-        }
-
-        chatItems.add({
-          'type': 'text',
-          'createdAt': message.createdAt,
-          'text': message.body,
-          'time':
-              '${message.createdAt.hour}:${message.createdAt.minute.toString().padLeft(2, '0')} ${message.createdAt.hour < 12 ? 'AM' : 'PM'}',
-          'senderId': senderKey,
-          'receiverId': receiverKey,
-        });
       }
+
+      chatItems.add({
+        'type': 'text',
+        'createdAt': message.createdAt,
+        'text': message.body,
+        'time':
+            '${message.createdAt.hour}:${message.createdAt.minute.toString().padLeft(2, '0')} ${message.createdAt.hour < 12 ? 'AM' : 'PM'}',
+        'senderId': senderKey,
+        'receiverId': receiverKey,
+      });
+    }
 
     // Add petty cash requests — technician (sender) sees on right, others on left
     if (issue.pettyCashRequests != null) {
       for (final request in issue.pettyCashRequests!) {
-        final isSender = myRole == UserRole.technician &&
+        final isSender =
+            myRole == UserRole.technician &&
             request.technicianId == issue.technicianId;
         chatItems.add({
           'type': 'petty_cash',
@@ -1472,9 +1554,11 @@ class _ChatPageState extends State<ChatPage> {
     });
 
     // Inject a dedicated pending-approval bubble for both Technicians AND Approvers
-    final isApprover = myRole == UserRole.executive || myRole == UserRole.branchManager;
+    final isApprover =
+        myRole == UserRole.executive || myRole == UserRole.branchManager;
     final isTechnician = myRole == UserRole.technician;
-    final isIssuePendingResolution = issue.status == IssueStatus.pendingResolution;
+    final isIssuePendingResolution =
+        issue.status == IssueStatus.pendingResolution;
     final isIssuePendingClose = issue.status == IssueStatus.pendingClose;
 
     if (isIssuePendingResolution || isIssuePendingClose) {
@@ -1483,11 +1567,15 @@ class _ChatPageState extends State<ChatPage> {
       chatItems.add({
         'type': 'pending_approval',
         'createdAt': issue.updatedAt.add(const Duration(seconds: 1)),
-        'pendingType': isIssuePendingResolution ? 'Pending Resolution' : 'Pending Close',
+        'pendingType': isIssuePendingResolution
+            ? 'Pending Resolution'
+            : 'Pending Close',
         'requesterName': techName,
         'timeText':
             '${issue.updatedAt.hour}:${issue.updatedAt.minute.toString().padLeft(2, '0')} ${issue.updatedAt.hour < 12 ? 'AM' : 'PM'}',
-        'creatorId': issue.technicianId != null ? 'u_tech_${issue.technicianId}' : null,
+        'creatorId': issue.technicianId != null
+            ? 'u_tech_${issue.technicianId}'
+            : null,
         // Technician sees it aligned right (their own request), manager/exec sees it aligned left
         'alignRight': isTechnician,
         // Only pass action flags for approvers
@@ -1529,12 +1617,15 @@ class _ChatPageState extends State<ChatPage> {
 
                   if (it['type'] == 'assignment') {
                     final creatorId = it['creatorId'] as String?;
-                    final creator =
-                        creatorId != null ? participants[creatorId] : null;
-                    final creatorAvatarUrl =
-                        creator != null ? creator['avatarUrl'] : null;
-                    final creatorName =
-                        creator != null ? creator['name'] : null;
+                    final creator = creatorId != null
+                        ? participants[creatorId]
+                        : null;
+                    final creatorAvatarUrl = creator != null
+                        ? creator['avatarUrl']
+                        : null;
+                    final creatorName = creator != null
+                        ? creator['name']
+                        : null;
                     final alignRight = (it['alignRight'] as bool?) ?? true;
 
                     return AssignmentBubble(
@@ -1550,12 +1641,15 @@ class _ChatPageState extends State<ChatPage> {
 
                   if (it['type'] == 'ticket') {
                     final creatorId = it['creatorId'] as String?;
-                    final creator =
-                        creatorId != null ? participants[creatorId] : null;
-                    final creatorAvatarUrl =
-                        creator != null ? creator['avatarUrl'] : null;
-                    final creatorName =
-                        creator != null ? creator['name'] : null;
+                    final creator = creatorId != null
+                        ? participants[creatorId]
+                        : null;
+                    final creatorAvatarUrl = creator != null
+                        ? creator['avatarUrl']
+                        : null;
+                    final creatorName = creator != null
+                        ? creator['name']
+                        : null;
 
                     return TicketBubble(
                       creatorAvatarUrl: creatorAvatarUrl,
@@ -1574,15 +1668,21 @@ class _ChatPageState extends State<ChatPage> {
 
                   if (it['type'] == 'status_update') {
                     final creatorId = it['creatorId'] as String?;
-                    final creator =
-                        creatorId != null ? participants[creatorId] : null;
-                    final creatorAvatarUrl =
-                        creator != null ? creator['avatarUrl'] : null;
-                    final creatorName =
-                        creator != null ? creator['name'] : null;
+                    final creator = creatorId != null
+                        ? participants[creatorId]
+                        : null;
+                    final creatorAvatarUrl = creator != null
+                        ? creator['avatarUrl']
+                        : null;
+                    final creatorName = creator != null
+                        ? creator['name']
+                        : null;
                     final alignRight = (it['alignRight'] as bool?) ?? false;
-                    final showApprovalActions = (it['showApprovalActions'] as bool?) ?? false;
-                    final pendingType = it['pendingType'] as String? ?? it['statusType'] as String?;
+                    final showApprovalActions =
+                        (it['showApprovalActions'] as bool?) ?? false;
+                    final pendingType =
+                        it['pendingType'] as String? ??
+                        it['statusType'] as String?;
 
                     return StatusUpdateBubble(
                       creatorAvatarUrl: creatorAvatarUrl,
@@ -1595,29 +1695,32 @@ class _ChatPageState extends State<ChatPage> {
                       showApprovalActions: showApprovalActions,
                       onApprove: showApprovalActions
                           ? () => _handleApprovalAction(
-                                pendingType == 'Pending Resolution'
-                                    ? 'approve_resolution'
-                                    : 'approve_close',
-                              )
+                              pendingType == 'Pending Resolution'
+                                  ? 'approve_resolution'
+                                  : 'approve_close',
+                            )
                           : null,
                       onReject: showApprovalActions
                           ? () => _handleApprovalAction(
-                                pendingType == 'Pending Resolution'
-                                    ? 'reject_resolution'
-                                    : 'reject_close',
-                              )
+                              pendingType == 'Pending Resolution'
+                                  ? 'reject_resolution'
+                                  : 'reject_close',
+                            )
                           : null,
                     );
                   }
 
                   if (it['type'] == 'pending_approval') {
                     final creatorId = it['creatorId'] as String?;
-                    final creator =
-                        creatorId != null ? participants[creatorId] : null;
-                    final creatorAvatarUrl =
-                        creator != null ? creator['avatarUrl'] : null;
+                    final creator = creatorId != null
+                        ? participants[creatorId]
+                        : null;
+                    final creatorAvatarUrl = creator != null
+                        ? creator['avatarUrl']
+                        : null;
                     final pendingType = it['pendingType'] as String;
-                    final requesterName = it['requesterName'] as String? ?? 'Technician';
+                    final requesterName =
+                        it['requesterName'] as String? ?? 'Technician';
                     final alignRight = (it['alignRight'] as bool?) ?? false;
                     final showActions = (it['showActions'] as bool?) ?? false;
 
@@ -1632,29 +1735,32 @@ class _ChatPageState extends State<ChatPage> {
                           : '${it['timeText']} · $requesterName',
                       onReject: showActions
                           ? () => _handleApprovalAction(
-                                pendingType == 'Pending Resolution'
-                                    ? 'reject_resolution'
-                                    : 'reject_close',
-                              )
+                              pendingType == 'Pending Resolution'
+                                  ? 'reject_resolution'
+                                  : 'reject_close',
+                            )
                           : null,
                       onApprove: showActions
                           ? () => _handleApprovalAction(
-                                pendingType == 'Pending Resolution'
-                                    ? 'approve_resolution'
-                                    : 'approve_close',
-                              )
+                              pendingType == 'Pending Resolution'
+                                  ? 'approve_resolution'
+                                  : 'approve_close',
+                            )
                           : null,
                     );
                   }
 
                   if (it['type'] == 'issue_closed') {
                     final creatorId = it['creatorId'] as String?;
-                    final creator =
-                        creatorId != null ? participants[creatorId] : null;
-                    final creatorAvatarUrl =
-                        creator != null ? creator['avatarUrl'] : null;
-                    final creatorName =
-                        creator != null ? creator['name'] : null;
+                    final creator = creatorId != null
+                        ? participants[creatorId]
+                        : null;
+                    final creatorAvatarUrl = creator != null
+                        ? creator['avatarUrl']
+                        : null;
+                    final creatorName = creator != null
+                        ? creator['name']
+                        : null;
                     final alignRight = (it['alignRight'] as bool?) ?? true;
 
                     return IssueClosedBubble(
@@ -1670,17 +1776,21 @@ class _ChatPageState extends State<ChatPage> {
 
                   if (it['type'] == 'outside_party') {
                     final creatorId = it['creatorId'] as String?;
-                    final creator =
-                        creatorId != null ? participants[creatorId] : null;
-                    final creatorAvatarUrl =
-                        creator != null ? creator['avatarUrl'] as String? : null;
-                    final creatorName =
-                        creator != null ? creator['name'] as String? : null;
+                    final creator = creatorId != null
+                        ? participants[creatorId]
+                        : null;
+                    final creatorAvatarUrl = creator != null
+                        ? creator['avatarUrl'] as String?
+                        : null;
+                    final creatorName = creator != null
+                        ? creator['name'] as String?
+                        : null;
                     final alignRight = (it['alignRight'] as bool?) ?? false;
                     final requestId = it['requestId'] as String?;
                     final requestStatus = it['status'] as String?;
 
-                    final isManager = myRole == UserRole.executive ||
+                    final isManager =
+                        myRole == UserRole.executive ||
                         myRole == UserRole.branchManager;
 
                     return OutsidePartySuggestionBubble(
@@ -1695,7 +1805,8 @@ class _ChatPageState extends State<ChatPage> {
                           ? '${it['timeText']} · $creatorName'
                           : null,
                       onApprove: requestStatus == 'pending' && isManager
-                          ? () => _handleOutsidePartyAction(requestId, 'approve')
+                          ? () =>
+                                _handleOutsidePartyAction(requestId, 'approve')
                           : null,
                       onReject: requestStatus == 'pending' && isManager
                           ? () => _handleOutsidePartyAction(requestId, 'reject')
@@ -1705,17 +1816,22 @@ class _ChatPageState extends State<ChatPage> {
 
                   if (it['type'] == 'petty_cash') {
                     final creatorId = it['creatorId'] as String?;
-                    final creator =
-                        creatorId != null ? participants[creatorId] : null;
-                    final creatorAvatarUrl =
-                        creator != null ? creator['avatarUrl'] : null;
-                    final creatorName =
-                        creator != null ? creator['name'] : null;
+                    final creator = creatorId != null
+                        ? participants[creatorId]
+                        : null;
+                    final creatorAvatarUrl = creator != null
+                        ? creator['avatarUrl']
+                        : null;
+                    final creatorName = creator != null
+                        ? creator['name']
+                        : null;
                     final alignRight = (it['alignRight'] as bool?) ?? false;
                     final requestId = it['requestId'];
                     final requestStatus = it['status'] as String?;
 
-                    final isManager = myRole == UserRole.executive || myRole == UserRole.branchManager;
+                    final isManager =
+                        myRole == UserRole.executive ||
+                        myRole == UserRole.branchManager;
                     final isTechnician = myRole == UserRole.technician;
 
                     return PettyCashRequestBubble(
@@ -1726,7 +1842,9 @@ class _ChatPageState extends State<ChatPage> {
                       description: it['description'] as String?,
                       status: requestStatus,
                       alignRight: alignRight,
-                      senderInfoText: creatorName != null ? '${it['timeText']} From ${creatorName}' : null,
+                      senderInfoText: creatorName != null
+                          ? '${it['timeText']} From ${creatorName}'
+                          : null,
                       onCancel: requestStatus == 'pending' && isTechnician
                           ? () => _handlePettyCashAction(requestId, 'cancel')
                           : null,
@@ -1736,7 +1854,10 @@ class _ChatPageState extends State<ChatPage> {
                       onAccept: requestStatus == 'pending' && isManager
                           ? () => _handlePettyCashAction(requestId, 'approve')
                           : null,
-                      onUndo: (requestStatus == 'approved' || requestStatus == 'rejected') && isManager
+                      onUndo:
+                          (requestStatus == 'approved' ||
+                                  requestStatus == 'rejected') &&
+                              isManager
                           ? () => _handlePettyCashAction(requestId, 'undo')
                           : null,
                     );
@@ -1751,13 +1872,14 @@ class _ChatPageState extends State<ChatPage> {
                   final isMe = senderUserId == currentUserId;
 
                   final sender = participants[senderIdKey];
-                  final receiver =
-                      receiverIdKey != null ? participants[receiverIdKey] : null;
+                  final receiver = receiverIdKey != null
+                      ? participants[receiverIdKey]
+                      : null;
 
                   // Determine whose avatar to show (the other person)
                   final otherIdKey = isMe ? receiverIdKey : senderIdKey;
-                  final otherAvatar = otherIdKey != null &&
-                          participants[otherIdKey] != null
+                  final otherAvatar =
+                      otherIdKey != null && participants[otherIdKey] != null
                       ? participants[otherIdKey]!['avatarUrl']
                       : null;
 
@@ -1812,11 +1934,16 @@ class _ChatPageState extends State<ChatPage> {
     final isTechnician = role == 'technician';
 
     switch (dialogStatus.toLowerCase()) {
-      case 'open': return 'Open';
-      case 'in_progress': return 'In Progress';
-      case 'resolved': return isTechnician ? 'Pending Resolution' : 'Done';
-      case 'closed': return isTechnician ? 'Pending Close' : 'Closed';
-      default: return 'Open';
+      case 'open':
+        return 'Open';
+      case 'in_progress':
+        return 'In Progress';
+      case 'resolved':
+        return isTechnician ? 'Pending Resolution' : 'Done';
+      case 'closed':
+        return isTechnician ? 'Pending Close' : 'Closed';
+      default:
+        return 'Open';
     }
   }
 
@@ -1827,11 +1954,16 @@ class _ChatPageState extends State<ChatPage> {
     final isTechnician = role == 'technician';
 
     switch (dialogStatus.toLowerCase()) {
-      case 'open': return 'Open';
-      case 'in_progress': return 'In Progress';
-      case 'resolved': return isTechnician ? 'Pending Resolution' : 'Resolved';
-      case 'closed': return isTechnician ? 'Pending Close' : 'Closed';
-      default: return 'Open';
+      case 'open':
+        return 'Open';
+      case 'in_progress':
+        return 'In Progress';
+      case 'resolved':
+        return isTechnician ? 'Pending Resolution' : 'Resolved';
+      case 'closed':
+        return isTechnician ? 'Pending Close' : 'Closed';
+      default:
+        return 'Open';
     }
   }
 
