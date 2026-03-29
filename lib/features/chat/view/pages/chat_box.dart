@@ -4,14 +4,16 @@ import 'package:mobile/features/chat/view/widgets/message_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/messge_input_field.dart';
 import 'package:mobile/features/chat/view/widgets/ticket_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/assignment_bubble.dart';
-import 'package:mobile/features/user/model/user_role.dart'; // added
+import 'package:mobile/features/chat/view/widgets/action_dialogs.dart';
+import 'package:mobile/features/user/model/user_role.dart';
 import 'package:mobile/core/services/auth_service.dart';
-import 'package:mobile/features/chat/view/widgets/issue_closed_bubble.dart'; // added
-import 'package:mobile/features/chat/view/widgets/status_update_bubble.dart'; // added
+import 'package:mobile/core/services/upload_service.dart';
+import 'package:mobile/features/chat/view/widgets/issue_closed_bubble.dart';
+import 'package:mobile/features/chat/view/widgets/status_update_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/outside_party_suggestion_bubble.dart';
 import 'package:mobile/features/chat/view/widgets/petty_cash_request_bubble.dart';
 import 'package:mobile/features/tickets/model/issue_model.dart';
-import 'package:mobile/core/services/auth_service.dart';
+import 'package:mobile/features/tickets/service/issue_api_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:mobile/core/config/api_config.dart';
 
@@ -29,6 +31,7 @@ class _ChatPageState extends State<ChatPage> {
   final List<MessageModel> _realtimeMessages = [];
   bool _isConnected = false;
   final ScrollController _scrollController = ScrollController();
+  final IssueApiService _issueApiService = IssueApiService();
 
   @override
   void didChangeDependencies() {
@@ -303,6 +306,375 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  /// Handle action button taps from MessageInputField
+  void _handleAction(String action) {
+    if (_issue == null) return;
+
+    switch (action) {
+      case 'Assign a Technician':
+        showAssignGPMDialog(context, (technician) async {
+          try {
+            // Show loading indicator
+            _showLoadingDialog('Assigning technician...');
+            
+            // Call API to assign technician
+            final updatedIssue = await _issueApiService.assignTechnician(
+              _issue!.id,
+              technician.id,
+            );
+            
+            // Dismiss loading
+            if (mounted) Navigator.of(context).pop();
+            
+            // Update local state
+            setState(() {
+              _issue = updatedIssue;
+            });
+            
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Technician ${technician.name} assigned successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            // Dismiss loading
+            if (mounted) Navigator.of(context).pop();
+            
+            // Show error message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to assign technician: ${e.toString()}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        });
+        break;
+
+      case 'Get Outside Support':
+        showGetOutsideSupportDialog(context, (thirdParty) async {
+          try {
+            // Show loading indicator
+            _showLoadingDialog('Assigning third party...');
+            
+            // Call API to assign third party
+            final updatedIssue = await _issueApiService.assignThirdParty(
+              _issue!.id,
+              thirdParty.id,
+            );
+            
+            // Dismiss loading
+            if (mounted) Navigator.of(context).pop();
+            
+            // Update local state
+            setState(() {
+              _issue = updatedIssue;
+            });
+            
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Third party ${thirdParty.organization} assigned successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            // Dismiss loading
+            if (mounted) Navigator.of(context).pop();
+            
+            // Show error message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to assign third party: ${e.toString()}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        });
+        break;
+
+      case 'Close Issue':
+        showCloseIssueDialog(context, (description, imageFile) async {
+          try {
+            // Show loading indicator
+            _showLoadingDialog('Closing issue...');
+            
+            // Upload image if provided
+            String? imageUrl;
+            if (imageFile != null) {
+              try {
+                final uploadedFile = await UploadService.instance.uploadFile(
+                  imageFile,
+                  issueId: _issue!.id,
+                );
+                imageUrl = uploadedFile.url;
+              } catch (uploadError) {
+                debugPrint('Failed to upload image: $uploadError');
+                // Continue with closing even if image upload fails
+              }
+            }
+            
+            // Call API to update issue status to closed
+            final updatedIssue = await _issueApiService.updateIssueStatus(
+              _issue!.id,
+              IssueStatus.closed,
+            );
+            
+            // Dismiss loading
+            if (mounted) Navigator.of(context).pop();
+            
+            // Update local state
+            setState(() {
+              _issue = updatedIssue;
+            });
+            
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Issue closed successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            // Dismiss loading
+            if (mounted) Navigator.of(context).pop();
+            
+            // Show error message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to close issue: ${e.toString()}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        });
+        break;
+
+      case 'Update the Status':
+        showUpdateStatusDialog(
+          context,
+          _issue!.status.value,
+          (newStatus, description, imageFile) async {
+            try {
+              // Show loading indicator
+              _showLoadingDialog('Updating status...');
+              
+              // Upload image if provided
+              String? imageUrl;
+              if (imageFile != null) {
+                try {
+                  final uploadedFile = await UploadService.instance.uploadFile(
+                    imageFile,
+                    issueId: _issue!.id,
+                  );
+                  imageUrl = uploadedFile.url;
+                } catch (uploadError) {
+                  debugPrint('Failed to upload image: $uploadError');
+                  // Continue with status update even if image upload fails
+                }
+              }
+              
+              // Call API to update issue status
+              final updatedIssue = await _issueApiService.updateIssueStatus(
+                _issue!.id,
+                IssueStatus.fromString(newStatus),
+              );
+              
+              // Dismiss loading
+              if (mounted) Navigator.of(context).pop();
+              
+              // Update local state
+              setState(() {
+                _issue = updatedIssue;
+              });
+              
+              // Show success message
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Status updated to ${newStatus.replaceAll('_', ' ')}'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              // Dismiss loading
+              if (mounted) Navigator.of(context).pop();
+              
+              // Show error message
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to update status: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+        );
+        break;
+
+      case 'Suggest Outside Support':
+        // For technicians suggesting outside support
+        showSuggestOutsidePartyDialog(context, (description, suggestedParty) async {
+          try {
+            _showLoadingDialog('Submitting suggestion...');
+            
+            // TODO: Implement API endpoint for suggesting third party
+            // For now, we'll just show a success message
+            // In the future, this should create a suggestion/request record
+            
+            if (mounted) Navigator.of(context).pop();
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Suggestion for "$suggestedParty" submitted successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            if (mounted) Navigator.of(context).pop();
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to submit suggestion: ${e.toString()}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        });
+        break;
+
+      case 'Request Petty Cash':
+        showRequestPettyCashDialog(context, (amount, description) async {
+          try {
+            _showLoadingDialog('Submitting petty cash request...');
+            
+            // Emit socket event for petty cash request
+            _socket?.emit('petty_cash_request', {
+              'issue_id': _issue!.id,
+              'amount': amount,
+              'description': description,
+              'technician_id': AuthService.instance.currentUser?.id,
+            });
+            
+            if (mounted) Navigator.of(context).pop();
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Petty cash request for Rs. ${amount.toStringAsFixed(2)} submitted'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            if (mounted) Navigator.of(context).pop();
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to submit request: ${e.toString()}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        });
+        break;
+    }
+  }
+
+  /// Handle petty cash actions (approve/reject)
+  void _handlePettyCashAction(dynamic requestId, String action) async {
+    if (requestId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid request'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final actionLabel = action == 'approve' ? 'Approving' : 'Rejecting';
+    _showLoadingDialog('$actionLabel petty cash request...');
+
+    try {
+      // Emit socket event for petty cash action
+      _socket?.emit('petty_cash_action', {
+        'request_id': requestId,
+        'action': action,
+        'issue_id': _issue!.id,
+        'user_id': AuthService.instance.currentUser?.id,
+      });
+      
+      if (mounted) Navigator.of(context).pop();
+      
+      final successMessage = action == 'approve' 
+          ? 'Petty cash request approved' 
+          : 'Petty cash request rejected';
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: action == 'approve' ? Colors.green : Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to ${action} request: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Show a loading dialog
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(width: 16),
+              Text(message),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final issue = _issue;
@@ -544,6 +916,7 @@ class _ChatPageState extends State<ChatPage> {
           'creatorId': 'u_tech_${request.technicianId}',
           'description': request.description,
           'status': request.status,
+          'requestId': request.id,
           'alignRight': false,
         });
       }
@@ -692,6 +1065,8 @@ class _ChatPageState extends State<ChatPage> {
                     final creatorName =
                         creator != null ? creator['name'] : null;
                     final alignRight = (it['alignRight'] as bool?) ?? false;
+                    final requestId = it['requestId'];
+                    final requestStatus = it['status'] as String?;
 
                     return PettyCashRequestBubble(
                       creatorAvatarUrl: creatorAvatarUrl,
@@ -699,11 +1074,15 @@ class _ChatPageState extends State<ChatPage> {
                       amountLabel: it['amount'] as String,
                       timeText: it['timeText'] as String,
                       description: it['description'] as String?,
-                      status: it['status'] as String?,
+                      status: requestStatus,
                       alignRight: alignRight,
-                      onClose: () {},
-                      onAccept: () {},
-                      onRequestCash: () {},
+                      onClose: requestStatus == 'pending' && myRole == UserRole.executive
+                          ? () => _handlePettyCashAction(requestId, 'reject')
+                          : null,
+                      onAccept: requestStatus == 'pending' && myRole == UserRole.executive
+                          ? () => _handlePettyCashAction(requestId, 'approve')
+                          : null,
+                      onRequestCash: null,
                     );
                   }
 
@@ -748,6 +1127,7 @@ class _ChatPageState extends State<ChatPage> {
             MessageInputField(
               role: myRole,
               onSend: _sendMessage,
+              onAction: _handleAction,
             ),
           ],
         ),

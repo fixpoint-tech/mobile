@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,7 +22,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   String _selectedIssueType = 'Critical'; // Critical or General
   late DateTime _selectedDate; // Initialize with current date
   MaintenanceExecutive? _selectedExecutive;
-  final List<File> _selectedFiles = []; // Real file objects
+  final List<XFile> _selectedFiles = []; // XFile works on both web and mobile
   final List<UploadedFile> _uploadedFiles = []; // Uploaded file info from server
   final TextEditingController _taskNameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -392,7 +394,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   }
 
   /// Build thumbnail for selected file (pending upload)
-  Widget _buildSelectedFileThumbnail(int index, File file) {
+  Widget _buildSelectedFileThumbnail(int index, XFile file) {
     return Stack(
       children: [
         Container(
@@ -404,13 +406,18 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(
-              file,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
+            child: FutureBuilder<Uint8List>(
+              future: file.readAsBytes(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Image.memory(
+                    snapshot.data!,
+                    fit: BoxFit.cover,
+                  );
+                }
                 return Container(
                   color: Colors.grey[200],
-                  child: const Icon(Icons.image, color: Colors.grey),
+                  child: const CircularProgressIndicator(),
                 );
               },
             ),
@@ -631,7 +638,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
 
       if (pickedFile != null && mounted) {
         setState(() {
-          _selectedFiles.add(File(pickedFile.path));
+          _selectedFiles.add(pickedFile);
         });
       }
     } catch (e) {
@@ -753,13 +760,28 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       // Get current user info for branchId and managerId
       final currentUser = AuthService.instance.currentUser;
       
+      // Validate user has required profile data
+      if (currentUser == null) {
+        _showErrorDialog('User not logged in');
+        return;
+      }
+
+      if (currentUser.branchManagerProfileId == null) {
+        _showErrorDialog('User does not have a branch manager profile. Please contact support.');
+        return;
+      }
+      
+      // Use branch 1 as default if user doesn't have a branch assigned
+      // The backend will validate and may warn, but will allow creation
+      final branchId = currentUser.branchId ?? 1;
+      
       // Create new issue
       // Note: id, createdAt, updatedAt will be set by backend
-      // For now, we'll set temporary values that will be replaced
+      // manager_id should be the BranchManager profile ID, not User ID
       final newIssue = IssueModel(
         id: 0, // Backend will assign the real ID
-        branchId: currentUser?.branchId ?? 1, // Use user's branch or default to 1
-        managerId: currentUser?.branchManagerProfileId ?? 1, // Use current user's ID if they are the manager
+        branchId: currentUser.branchId!, // Use user's branch or default to 1
+        managerId: currentUser.branchManagerProfileId!, // Use BranchManager profile ID
         title: _taskNameController.text.trim(),
         description: _descriptionController.text.trim(),
         status: IssueStatus.open,
@@ -819,14 +841,8 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         });
       }
     } catch (e) {
-      // Clear form fields on error
-      _taskNameController.clear();
-      _descriptionController.clear();
-      setState(() {
-        _selectedDate = DateTime.now();
-        _selectedExecutive = null;
-        _uploadedFiles.clear();
-      });
+      // Don't clear form fields on error - let user try again
+      debugPrint('Error creating issue: $e');
 
       // Show error message with custom styling
       if (mounted) {
@@ -834,14 +850,16 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
           SnackBar(
             content: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Failed to create new task.',
-                    style: TextStyle(
+                    'Failed to create task: ${e.toString().replaceAll('Exception: ', '')}',
+                    style: const TextStyle(
                       color: AppColors.primary, // Your blue #3EA8D0
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 GestureDetector(

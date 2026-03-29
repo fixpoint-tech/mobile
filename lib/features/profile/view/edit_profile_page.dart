@@ -153,26 +153,80 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.white,
-                        image: user.avatarUrl != null
-                            ? DecorationImage(
-                                image: NetworkImage(user.avatarUrl!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
+                    GestureDetector(
+                      onTap: _controller.pickImage,
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.white,
+                            ),
+                            child: ClipOval(
+                              child: _controller.selectedImageBytes != null
+                                  ? Image.memory(
+                                      _controller.selectedImageBytes!,
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                                      ? Image.network(
+                                          user.avatarUrl!,
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                          cacheWidth: 160, // 2x for retina
+                                          cacheHeight: 160,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Icon(
+                                              Icons.person,
+                                              size: 40,
+                                              color: AppColors.grey,
+                                            );
+                                          },
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return Center(
+                                              child: SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: AppColors.secondary,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        )
+                                      : const Icon(
+                                          Icons.person,
+                                          size: 40,
+                                          color: AppColors.grey,
+                                        ),
+                            ),
+                          ),
+                          // Camera Icon Overlay
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.secondary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: user.avatarUrl == null
-                          ? const Icon(
-                              Icons.person,
-                              size: 40,
-                              color: AppColors.grey,
-                            )
-                          : null,
                     ),
                     const SizedBox(height: 12),
                     Text(
