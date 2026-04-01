@@ -7,6 +7,7 @@ final String? phone;
 final String? address;
 final String? specialization;
 final String? profilePicture;
+final String employeeId;
 final String role; // 'technician'
 final DateTime? createdAt;
 final DateTime? updatedAt;
@@ -19,6 +20,7 @@ Technician({
   this.address,
   this.specialization,
   this.profilePicture,
+  required this.employeeId,
   required this.role,
   this.createdAt,
   this.updatedAt,
@@ -26,13 +28,15 @@ Technician({
 
 /// Create from JSON
 factory Technician.fromJson(Map<String, dynamic> json) {
+  final technicianProfile = json['technicianProfile'];
   return Technician(
     id: json['id'],
     name: json['name'] ?? '',
     email: json['email'] ?? '',
     phone: json['phone'],
     address: json['address'],
-    specialization: json['specialization'],
+    specialization: technicianProfile?['specialization'] ?? json['specialization'] ?? '',
+    employeeId: technicianProfile?['employeeId'] ?? json['employeeId'] ?? '',
     profilePicture: json['profilePicture'],
     role: json['role'] ?? 'technician',
     createdAt: json['createdAt'] != null

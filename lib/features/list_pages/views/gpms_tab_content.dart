@@ -30,7 +30,7 @@ class GPMsTabContent extends StatelessWidget {
                 : null,
           ),
           title: technician.name,
-          subtitle: technician.specialization ?? 'GPM',
+          subtitle: '${technician.employeeId} | ${technician.specialization}',
           onEdit: () {
             Navigator.of(context).push(
               MaterialPageRoute(

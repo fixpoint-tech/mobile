@@ -28,7 +28,7 @@ class MEsTabContent extends StatelessWidget {
                 : null,
           ),
           title: me.name,
-          subtitle: me.displaySubtitle,
+          subtitle: me.employeeId != null ? '${me.employeeId}' : me.displaySubtitle,
           onEdit: () {
             Navigator.of(context).push(
               MaterialPageRoute(
