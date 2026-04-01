@@ -1,40 +1,46 @@
 import 'package:flutter/material.dart';
 
-/// Chat bubble shown when a user suggests an outside party vendor.
-/// Shows Approve/Reject buttons for Branch Manager & Maintenance Executive.
-/// Shows resolved state (Approved/Rejected) once action is taken.
-class OutsidePartySuggestionBubble extends StatelessWidget {
-  final String vendorName;
-  final String description;
+/// Chat bubble shown when a technician requests Resolved or Closed approval.
+/// Styled identically to [PettyCashRequestBubble].
+class PendingApprovalBubble extends StatelessWidget {
+  /// 'Pending Resolution' or 'Pending Close'
+  final String pendingType;
+
   final String timeText;
-  final String? status; // pending | approved | rejected
   final bool alignRight;
   final String? creatorAvatarUrl;
-  final String? creatorName;
-  final String? senderInfoText; // e.g. "9:50 AM · Technician"
-  final VoidCallback? onApprove;
-  final VoidCallback? onReject;
+  final String? requesterName;
+  final String? senderInfoText; // e.g. "9:50 AM From Technician"
 
-  const OutsidePartySuggestionBubble({
+  /// Branch Manager / Maintenance Executive only
+  final VoidCallback? onReject;
+  final VoidCallback? onApprove;
+
+  const PendingApprovalBubble({
     super.key,
-    required this.vendorName,
-    required this.description,
+    required this.pendingType,
     required this.timeText,
-    this.status,
+    this.requesterName,
     this.alignRight = false,
     this.creatorAvatarUrl,
-    this.creatorName,
     this.senderInfoText,
-    this.onApprove,
     this.onReject,
+    this.onApprove,
   });
 
   static const _timeColor = Color(0xFF3EA8D0);
-  static const _approveColor = Color(0xFF66BB6A); // green
 
-  bool get _isPending => status == null || status!.toLowerCase() == 'pending';
-  bool get _isApproved => status?.toLowerCase() == 'approved';
-  bool get _isRejected => status?.toLowerCase() == 'rejected';
+  bool get _isResolution => pendingType == 'Pending Resolution';
+
+  String get _title =>
+      _isResolution ? 'Requested Resolution' : 'Requested Close';
+
+  String get _description => _isResolution
+      ? 'Technician requests to mark this issue as Resolved.'
+      : 'Technician requests to close this issue.';
+
+  Color get _accentColor =>
+      _isResolution ? const Color(0xFF66BB6A) : const Color(0xFF78909C);
 
   @override
   Widget build(BuildContext context) {
@@ -54,11 +60,13 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
                 alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              // Avatar left
               if (!alignRight) ...[
                 _buildAvatar(creatorAvatarUrl),
                 const SizedBox(width: avatarSpacing),
               ],
 
+              // Bubble
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
                 child: Container(
@@ -79,22 +87,22 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // ── Title row ──
+                        // ── Title row with accent dot ──
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
                               width: 9,
                               height: 9,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF8B5CF6), // purple accent
+                              decoration: BoxDecoration(
+                                color: _accentColor,
                                 shape: BoxShape.circle,
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Text(
-                              'Suggested an Outside Party',
-                              style: TextStyle(
+                            Text(
+                              _title,
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF1A1A1A),
@@ -102,37 +110,11 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-
-                        // ── Vendor name ──
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Vendor: ',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF444444),
-                              ),
-                            ),
-                            Flexible(
-                              child: Text(
-                                vendorName,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF1A1A1A),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 5),
 
                         // ── Description ──
                         Text(
-                          description,
+                          _description,
                           style: const TextStyle(
                             fontSize: 13,
                             color: Color(0xFF6B6B6B),
@@ -142,27 +124,26 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
 
                         const SizedBox(height: 8),
 
-                        // ── Pending chip ──
-                        if (_isPending)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFAB47BC)
-                                  .withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color: const Color(0xFFAB47BC), width: 1),
-                            ),
-                            child: const Text(
-                              'Awaiting Approval',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFFAB47BC),
-                              ),
+                        // ── "Awaiting Approval" chip ──
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFFAB47BC).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: const Color(0xFFAB47BC), width: 1),
+                          ),
+                          child: const Text(
+                            'Awaiting Approval',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFAB47BC),
                             ),
                           ),
+                        ),
 
                         const SizedBox(height: 8),
 
@@ -170,8 +151,11 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.access_time_outlined,
-                                size: 15, color: _timeColor),
+                            const Icon(
+                              Icons.access_time_outlined,
+                              size: 15,
+                              color: _timeColor,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               timeText,
@@ -184,49 +168,8 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
                           ],
                         ),
 
-                        // ── RESOLVED STATE ──
-                        if (_isApproved || _isRejected) ...[
-                          const SizedBox(height: 10),
-                          const Text('· · ·',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xFFAAAAAA),
-                                  letterSpacing: 4)),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _isApproved
-                                    ? Icons.check_box_outlined
-                                    : Icons.cancel_outlined,
-                                size: 17,
-                                color: _isApproved
-                                    ? _approveColor
-                                    : const Color(0xFFFF7489),
-                              ),
-                              const SizedBox(width: 5),
-                              Flexible(
-                                child: Text(
-                                  _isApproved
-                                      ? 'Outside Party Approved'
-                                      : 'Outside Party Rejected',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: _isApproved
-                                        ? _approveColor
-                                        : const Color(0xFFFF7489),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-
-                        // ── PENDING: action buttons (Manager only) ──
-                        if (_isPending &&
-                            (onReject != null || onApprove != null)) ...[
+                        // ── Action buttons (Manager / Executive only) ──
+                        if (onReject != null || onApprove != null) ...[
                           const SizedBox(height: 12),
                           Row(
                             mainAxisSize: MainAxisSize.min,
@@ -241,7 +184,7 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
                               if (onApprove != null)
                                 _buildFilledButton(
                                   label: 'Approve',
-                                  color: _approveColor,
+                                  color: _accentColor,
                                   onPressed: onApprove!,
                                 ),
                             ],
@@ -253,6 +196,7 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
                 ),
               ),
 
+              // Avatar right
               if (alignRight) ...[
                 const SizedBox(width: avatarSpacing),
                 _buildAvatar(creatorAvatarUrl),
@@ -270,7 +214,10 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
               ),
               child: Text(
                 senderInfoText!,
-                style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFFAAAAAA),
+                ),
               ),
             ),
           ],
@@ -293,11 +240,14 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
         minimumSize: const Size(0, 32),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         visualDensity: VisualDensity.compact,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
       ),
-      child: Text(label,
-          style:
-              const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+      ),
     );
   }
 
@@ -316,22 +266,25 @@ class OutsidePartySuggestionBubble extends StatelessWidget {
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         visualDensity: VisualDensity.compact,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
       ),
-      child: Text(label,
-          style:
-              const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+      ),
     );
   }
 
   Widget _buildAvatar(String? url) {
     return CircleAvatar(
       radius: 16,
-      backgroundColor: const Color(0xFFE8D5FF),
+      backgroundColor: const Color(0xFFFFD6DC),
       backgroundImage:
           (url != null && url.isNotEmpty) ? NetworkImage(url) : null,
       child: (url == null || url.isEmpty)
-          ? const Icon(Icons.person, size: 18, color: Color(0xFF8B5CF6))
+          ? const Icon(Icons.person, size: 18, color: Color(0xFFFF7489))
           : null,
     );
   }

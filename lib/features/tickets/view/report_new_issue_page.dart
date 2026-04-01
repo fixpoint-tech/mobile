@@ -8,7 +8,6 @@ import '../controller/issue_controller.dart';
 import '../model/issue_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
-import '../../../core/services/user_service.dart';
 import '../../../core/services/upload_service.dart';
 
 class ReportNewIssuePage extends StatefulWidget {
@@ -21,7 +20,6 @@ class ReportNewIssuePage extends StatefulWidget {
 class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   String _selectedIssueType = 'Critical'; // Critical or General
   late DateTime _selectedDate; // Initialize with current date
-  MaintenanceExecutive? _selectedExecutive;
   final List<XFile> _selectedFiles = []; // XFile works on both web and mobile
   final List<UploadedFile> _uploadedFiles = []; // Uploaded file info from server
   final TextEditingController _taskNameController = TextEditingController();
@@ -29,38 +27,12 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   final IssueController _issueController = IssueController();
   final ImagePicker _imagePicker = ImagePicker();
   
-  // Dynamic data from backend
-  List<MaintenanceExecutive> _executives = [];
-  bool _isLoadingExecutives = false;
   bool _isUploadingFiles = false;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now(); // Use current date as default
-    _loadExecutives();
-  }
-
-  Future<void> _loadExecutives() async {
-    setState(() {
-      _isLoadingExecutives = true;
-    });
-    
-    try {
-      final executives = await UserService.instance.getMaintenanceExecutives();
-      if (mounted) {
-        setState(() {
-          _executives = executives;
-          _isLoadingExecutives = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingExecutives = false;
-        });
-      }
-    }
   }
 
   @override
@@ -285,32 +257,6 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                     const SizedBox(height: 8),
                     ..._uploadedFiles.map((file) => _buildUploadedFileChip(file)),
                   ],
-                  const SizedBox(height: 20),
-
-                  // Assigned Maintenance Executive
-                  _buildSectionLabel('Assigned Maintenance Executive'),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: _selectExecutive,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4FC3F7),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                  if (_selectedExecutive != null) ...[
-                    const SizedBox(height: 12),
-                    _buildExecutiveChip(_selectedExecutive!.name),
-                  ],
                   const SizedBox(height: 60),
                 ],
               ),
@@ -497,6 +443,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+
   Widget _buildExecutiveChip(String name) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -512,11 +459,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
           Text(name, style: const TextStyle(fontSize: 12)),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedExecutive = null;
-              });
-            },
+            onTap: () {},
             child: const Icon(Icons.close, size: 16, color: Colors.grey),
           ),
         ],
@@ -680,70 +623,6 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
     }
   }
 
-  void _selectExecutive() {
-    // Show dialog to select executive from dynamic list
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFFCE4EC), // Light pink background
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          'Select Maintenance Executive',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
-        ),
-        content: _isLoadingExecutives
-            ? const SizedBox(
-                height: 100,
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            : _executives.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text(
-                      'No maintenance executives available.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: _executives.map((executive) {
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: executive.profilePicture != null
-                                ? NetworkImage(executive.profilePicture!)
-                                : null,
-                            child: executive.profilePicture == null
-                                ? const Icon(Icons.person)
-                                : null,
-                          ),
-                          title: Text(executive.name),
-                          subtitle: Text(
-                            executive.email,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _selectedExecutive = executive;
-                            });
-                            Navigator.pop(context);
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _submitForm() async {
     try {
       // Validate required fields
@@ -760,24 +639,22 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       // Get current user info for branchId and managerId
       final currentUser = AuthService.instance.currentUser;
       
-      // Validate user has required profile data
+      // Validate user is logged in
       if (currentUser == null) {
         _showErrorDialog('User not logged in');
         return;
       }
-
-      if (currentUser.branchManagerProfileId == null) {
-        _showErrorDialog('User does not have a branch manager profile. Please contact support.');
-        return;
-      }
       
       // Use branch 1 as default if user doesn't have a branch assigned
-      // The backend will validate and may warn, but will allow creation
       final branchId = currentUser.branchId ?? 1;
+      
+      // Determine manager_id based on user role:
+      // - Branch managers use their own profile ID
+      // - All other roles (maintenance executive, etc.) send 0/null so backend auto-assigns
+      final int? managerId = currentUser.branchManagerProfileId;
       
       // Create new issue
       // Note: id, createdAt, updatedAt will be set by backend
-      // manager_id should be the BranchManager profile ID, not User ID
       final newIssue = IssueModel(
         id: 0, // Backend will assign the real ID
         branchId: currentUser.branchId!, // Use user's branch or default to 1
@@ -785,7 +662,6 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         title: _taskNameController.text.trim(),
         description: _descriptionController.text.trim(),
         status: IssueStatus.open,
-        maintenanceExecutiveId: _selectedExecutive?.id, // Use selected executive's real ID
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
