@@ -7,6 +7,7 @@ import '../../../core/routing/app_router.dart';
 import '../../../core/services/branch_manager_service.dart';
 import '../../../core/services/branch_service.dart';
 import '../../../core/services/maintenance_executive_service.dart';
+import '../../../core/services/technician_service.dart';
 import '../../user/view/add_gdm_page.dart';
 import '../../user/view/add_gpm_page.dart';
 import '../../user/view/add_outlet_page.dart';
@@ -32,7 +33,7 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
   final BranchManagerService _branchManagerService = BranchManagerService();
   final BranchService _branchService = BranchService();
   final MaintenanceExecutiveService _meService = MaintenanceExecutiveService();
-
+  final TechnicianService _technicianService = TechnicianService();
   // Dynamic counts
   int _gdmCount = 0;
   int _gpmCount = 0;
@@ -81,10 +82,11 @@ class _NetworkTabsPageState extends State<NetworkTabsPage>
       final branchManagers = await _branchManagerService.getAllBranchManagers();
       final outlets = await _branchService.getAllBranches();
       final mes = await _meService.getAllMaintenanceExecutives();
+      final technicians = await _technicianService.getAllTechnicians();
 
       setState(() {
-        _gdmCount = branchManagers.where((bm) => bm.branchId != null).length;
-        _gpmCount = branchManagers.where((bm) => bm.branchId == null).length;
+        _gdmCount = branchManagers.length;
+        _gpmCount = technicians.length;
         _outletCount = outlets.length;
         _meCount = mes.length;
         _isLoadingCounts = false;
