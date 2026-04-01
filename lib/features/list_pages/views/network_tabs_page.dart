@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/routing/app_router.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/branch_manager_service.dart';
 import '../../../core/services/branch_service.dart';
 import '../../../core/services/maintenance_executive_service.dart';
@@ -257,10 +258,17 @@ class _Header extends StatelessWidget {
             onTap: () {
               Navigator.pushNamed(context, RouteNames.profile);
             },
-            child: const CircleAvatar(
+            child: CircleAvatar(
               radius: 28,
               backgroundColor: _NetworkBlue.k,
-              child: Icon(Icons.person, color: Colors.white, size: 28),
+              backgroundImage: (AuthService.instance.currentUser?.profilePicture != null &&
+                      AuthService.instance.currentUser!.profilePicture!.isNotEmpty)
+                  ? NetworkImage(AuthService.instance.currentUser!.profilePicture!)
+                  : null,
+              child: (AuthService.instance.currentUser?.profilePicture == null ||
+                      AuthService.instance.currentUser!.profilePicture!.isEmpty)
+                  ? const Icon(Icons.person, color: Colors.white, size: 28)
+                  : null,
             ),
           ),
           const SizedBox(width: 12),
@@ -275,9 +283,9 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w600, // slightly bolder per Figma
                 ),
               ),
-              const Text(
-                'Induwara Ranasinghe',
-                style: TextStyle(
+              Text(
+                AuthService.instance.currentUser?.name ?? 'User',
+                style: const TextStyle(
                   fontSize: 18, // +1pt vs before
                   fontWeight: FontWeight.w700, // name is clearly bold in Figma
                   color: Colors.black87,

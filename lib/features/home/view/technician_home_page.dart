@@ -149,9 +149,14 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
     return ListenableBuilder(
       listenable: _issueController,
       builder: (context, _) {
-        final issues = _issueController.issues
-            .where((issue) => issue.status == status)
-            .toList();
+        final issues = _issueController.issues.where((issue) {
+          if (status == IssueStatus.inProgress) {
+            return issue.status == IssueStatus.inProgress ||
+                issue.status == IssueStatus.pendingResolution ||
+                issue.status == IssueStatus.pendingClose;
+          }
+          return issue.status == status;
+        }).toList();
 
         if (issues.isEmpty) {
           return Center(
@@ -210,11 +215,16 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
 
       Navigator.pop(context); // Dismiss the loading indicator
 
-      Navigator.pushNamed(
+      await Navigator.pushNamed(
         context,
         ChatPage.routeName,
         arguments: detailedIssue,
       );
+
+      // Refresh the issue list after returning to update tabs
+      if (mounted) {
+        _issueController.refreshIssues();
+      }
     } catch (e) {
       Navigator.pop(context); // Dismiss the loading indicator
       ScaffoldMessenger.of(context).showSnackBar(

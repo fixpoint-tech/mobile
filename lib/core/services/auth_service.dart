@@ -13,6 +13,7 @@ class UserProfile {
   final String? profilePicture;
   final int? branchId;
   final int? branchManagerProfileId; // The ID of the BranchManager profile
+  final int? maintenanceExecutiveProfileId; // The ID of the MaintenanceExecutive profile
 
   UserProfile({
     required this.id,
@@ -23,17 +24,26 @@ class UserProfile {
     this.profilePicture,
     this.branchId,
     this.branchManagerProfileId,
+    this.maintenanceExecutiveProfileId,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
-    // Extract branchId from branchManagerProfile if present
+    // Extract branchId and branchManagerProfileId from branchManagerProfile if present
     int? branchId;
     int? branchManagerProfileId;
+    int? maintenanceExecutiveProfileId;
     
     final branchManagerProfile = json['branchManagerProfile'] as Map<String, dynamic>?;
     if (branchManagerProfile != null) {
       branchId = branchManagerProfile['branchId'] as int?;
       branchManagerProfileId = branchManagerProfile['id'] as int?;
+    }
+
+    final meProfile = json['maintenanceExecutiveProfile'] as Map<String, dynamic>?;
+    if (meProfile != null) {
+      maintenanceExecutiveProfileId = meProfile['id'] as int?;
+      // Also extract branchId from ME profile if not already set
+      branchId ??= meProfile['branchId'] as int?;
     }
     
     return UserProfile(
@@ -45,6 +55,7 @@ class UserProfile {
       profilePicture: json['profilePicture'] as String?,
       branchId: branchId ?? json['branchId'] as int?,
       branchManagerProfileId: branchManagerProfileId,
+      maintenanceExecutiveProfileId: maintenanceExecutiveProfileId,
     );
   }
 
@@ -58,6 +69,7 @@ class UserProfile {
       'profilePicture': profilePicture,
       'branchId': branchId,
       'branchManagerProfileId': branchManagerProfileId,
+      'maintenanceExecutiveProfileId': maintenanceExecutiveProfileId,
     };
   }
 }

@@ -8,9 +8,11 @@ class PettyCashRequestBubble extends StatelessWidget {
   final String? creatorName;
   final String? description;
   final String? status;
-  final VoidCallback? onClose;
+  final String? senderInfoText; // e.g. "8:58 AM From GPM"
+  final VoidCallback? onReject;
   final VoidCallback? onAccept;
-  final VoidCallback? onRequestCash;
+  final VoidCallback? onCancel;
+  final VoidCallback? onUndo;
 
   const PettyCashRequestBubble({
     super.key,
@@ -19,219 +21,301 @@ class PettyCashRequestBubble extends StatelessWidget {
     this.alignRight = false,
     this.creatorAvatarUrl,
     this.creatorName,
-  this.description,
-  this.status,
-    this.onClose,
+    this.description,
+    this.status,
+    this.senderInfoText,
+    this.onReject,
     this.onAccept,
-    this.onRequestCash,
+    this.onCancel,
+    this.onUndo,
   });
 
   static const _timeColor = Color(0xFF3EA8D0);
-  static const _requestIconAsset = 'assets/icons/mail-icon.png'; // <-- updated
+
+  bool get _isApproved => status?.toLowerCase() == 'approved';
+  bool get _isRejected => status?.toLowerCase() == 'rejected';
+  bool get _isPending => status?.toLowerCase() == 'pending' || status == null;
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    const avatarWithSpacing = 40.0; // ~32 avatar + 8 spacing
-    final maxWidth = (screenWidth * 0.86) - avatarWithSpacing;
+    const avatarSize = 32.0;
+    const avatarSpacing = 8.0;
+    final maxWidth = (screenWidth * 0.86) - avatarSize - avatarSpacing;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      child: Row(
-        mainAxisAlignment: alignRight
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      child: Column(
+        crossAxisAlignment:
+            alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          if (!alignRight) ...[
-            _buildAvatar(creatorAvatarUrl),
-            const SizedBox(width: 8),
-          ],
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFECE6F0),
-                borderRadius: const BorderRadius.all(Radius.circular(22)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+          Row(
+            mainAxisAlignment:
+                alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Avatar on left
+              if (!alignRight) ...[
+                _buildAvatar(creatorAvatarUrl),
+                const SizedBox(width: avatarSpacing),
+              ],
+
+              // Bubble
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECE6F0),
+                    borderRadius: const BorderRadius.all(Radius.circular(20)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Requested by: ${creatorName ?? 'Unknown'}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Requested Petty Cash',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      amountLabel,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade600,
-                        height: 1.2,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (description != null && description!.trim().isNotEmpty)
-                      Text(
-                        description!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                    if (status != null && status!.trim().isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: _buildStatusChip(status!),
-                      ),
-                    const SizedBox(height: 10),
-                    Row(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.access_time_outlined,
-                          size: 16,
-                          color: _timeColor,
+                        // ── Title ──
+                        const Text(
+                          'Requested Petty Cash',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A1A1A),
+                          ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(height: 3),
+
+                        // ── Amount ──
                         Text(
-                          timeText,
+                          amountLabel,
                           style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _timeColor,
+                            fontSize: 15,
+                            color: Color(0xFF6B6B6B),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Buttons in one line (reduced size)
-                    Row(
-                      children: [
-                        Flexible(
-                          flex: 4,
-                          child: OutlinedButton(
-                            onPressed: onClose,
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF7489),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 10,
-                              ),
-                              minimumSize: const Size(0, 36),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
-                            child: const FittedBox(
-                              child: Text(
-                                'Reject',
-                                style: TextStyle(fontSize: 14),
-                                maxLines: 1,
-                              ),
+
+                        // ── Optional description ──
+                        if (description != null &&
+                            description!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            description!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF888888),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          flex: 4,
-                          child: ElevatedButton(
-                            onPressed: onAccept,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _timeColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              minimumSize: const Size(0, 36),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5),
+                        ],
+
+                        const SizedBox(height: 8),
+
+                        // ── Time row ──
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.access_time_outlined,
+                              size: 15,
+                              color: _timeColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              timeText,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: _timeColor,
                               ),
                             ),
-                            child: const Text(
-                              'Accept',
-                              style: TextStyle(fontSize: 14),
+                          ],
+                        ),
+
+                        // ── RESOLVED STATE ──
+                        if (_isApproved || _isRejected) ...[
+                          const SizedBox(height: 10),
+                          const Text(
+                            '· · ·',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFFAAAAAA),
+                              letterSpacing: 4,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          flex: 6,
-                          child: OutlinedButton.icon(
-                            onPressed: onRequestCash,
-                            icon: Image.asset(
-                              _requestIconAsset,
-                              width: 18,
-                              height: 18,
-                              errorBuilder: (_, error, stackTrace) =>
-                                  const Icon(
-                                    Icons.payments_outlined,
-                                    size: 18,
-                                    color: Color(0xFF727272),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _isApproved
+                                    ? Icons.check_box_outlined
+                                    : Icons.cancel_outlined,
+                                size: 17,
+                                color: _isApproved
+                                    ? _timeColor
+                                    : const Color(0xFFFF7489),
+                              ),
+                              const SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  _isApproved
+                                      ? 'Cash Request Accepted'
+                                      : 'Cash Request Rejected',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: _isApproved
+                                        ? _timeColor
+                                        : const Color(0xFFFF7489),
                                   ),
-                            ),
-                            label: const Text(
-                              'Request',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 14),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF727272),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 10,
+                                ),
                               ),
-                              minimumSize: const Size(0, 36),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
+                              if (onUndo != null) ...[
+                                const SizedBox(width: 8),
+                                _buildSmallOutlinedButton(
+                                  label: 'Undo',
+                                  color: const Color(0xFF666666),
+                                  borderColor: const Color(0xFFCCCCCC),
+                                  bgColor: Colors.white,
+                                  onPressed: onUndo!,
+                                ),
+                              ],
+                            ],
                           ),
-                        ),
+                        ],
+
+                        // ── PENDING: action buttons ──
+                        if (_isPending &&
+                            (onReject != null ||
+                                onAccept != null ||
+                                onCancel != null)) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Technician: Cancel
+                              if (onCancel != null) ...[
+                                _buildSmallOutlinedButton(
+                                  label: 'Cancel',
+                                  color: const Color(0xFF1A1A1A),
+                                  borderColor: const Color(0xFFCCCCCC),
+                                  bgColor: Colors.white,
+                                  onPressed: onCancel!,
+                                ),
+                              ],
+                              // Manager: Reject
+                              if (onReject != null) ...[
+                                _buildSmallOutlinedButton(
+                                  label: 'Close',
+                                  color: const Color(0xFF1A1A1A),
+                                  borderColor: const Color(0xFFCCCCCC),
+                                  bgColor: Colors.white,
+                                  onPressed: onReject!,
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              // Manager: Accept
+                              if (onAccept != null) ...[
+                                _buildFilledButton(
+                                  label: 'Accept',
+                                  onPressed: onAccept!,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ],
                     ),
-                  ],
+                  ),
+                ),
+              ),
+
+              // Avatar on right
+              if (alignRight) ...[
+                const SizedBox(width: avatarSpacing),
+                _buildAvatar(creatorAvatarUrl),
+              ],
+            ],
+          ),
+
+          // ── Sender info footer ──
+          if (senderInfoText != null) ...[
+            const SizedBox(height: 3),
+            Padding(
+              padding: EdgeInsets.only(
+                left: alignRight ? 0 : avatarSize + avatarSpacing,
+                right: alignRight ? avatarSize + avatarSpacing : 0,
+              ),
+              child: Text(
+                senderInfoText!,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFFAAAAAA),
                 ),
               ),
             ),
-          ),
-          if (alignRight) ...[
-            const SizedBox(width: 8),
-            _buildAvatar(creatorAvatarUrl),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildSmallOutlinedButton({
+    required String label,
+    required Color color,
+    required Color borderColor,
+    required Color bgColor,
+    required VoidCallback onPressed,
+  }) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        backgroundColor: bgColor,
+        foregroundColor: color,
+        side: BorderSide(color: borderColor),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+
+  Widget _buildFilledButton({
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _timeColor,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
       ),
     );
   }
@@ -239,49 +323,12 @@ class PettyCashRequestBubble extends StatelessWidget {
   Widget _buildAvatar(String? url) {
     return CircleAvatar(
       radius: 16,
-      backgroundColor: const Color(0xFFFF7489),
-      backgroundImage: (url != null && url.isNotEmpty)
-          ? NetworkImage(url)
-          : null,
+      backgroundColor: const Color(0xFFFFD6DC),
+      backgroundImage:
+          (url != null && url.isNotEmpty) ? NetworkImage(url) : null,
       child: (url == null || url.isEmpty)
-          ? const Icon(Icons.person, size: 18, color: Color(0xFF8AA4B8))
+          ? const Icon(Icons.person, size: 18, color: Color(0xFFFF7489))
           : null,
-    );
-  }
-
-  Widget _buildStatusChip(String status) {
-    final s = status.toLowerCase();
-    Color bgColor;
-    Color textColor = Colors.black87;
-
-    if (s == 'pending') {
-      bgColor = Colors.orange.shade100;
-      textColor = Colors.orange.shade800;
-    } else if (s == 'approved' || s == 'accepted') {
-      bgColor = Colors.green.shade100;
-      textColor = Colors.green.shade800;
-    } else if (s == 'rejected' || s == 'declined') {
-      bgColor = Colors.red.shade100;
-      textColor = Colors.red.shade800;
-    } else {
-      bgColor = Colors.grey.shade200;
-      textColor = Colors.black87;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        status[0].toUpperCase() + status.substring(1),
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ),
     );
   }
 }

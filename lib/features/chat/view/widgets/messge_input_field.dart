@@ -83,7 +83,7 @@ class _MessageInputFieldState extends State<MessageInputField> {
         break;
       case UserRole.technician:
         actions = const [
-          'Suggest Outside Support',
+          'Suggest Outside Party',
           'Request Petty Cash',
           'Update the Status',
         ];
@@ -152,6 +152,8 @@ class _MessageInputFieldState extends State<MessageInputField> {
     switch (widget.role) {
       case UserRole.branchManager: // GDM
         actions = const [
+          'Update the Status',
+          'Get Outside Support',
           'Close Issue',
         ];
         break;
@@ -165,7 +167,7 @@ class _MessageInputFieldState extends State<MessageInputField> {
         break;
       case UserRole.technician:
         actions = const [
-          'Suggest Outside Support',
+          'Suggest Outside Party',
           'Request Petty Cash',
           'Update the Status',
         ];

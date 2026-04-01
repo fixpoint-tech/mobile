@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/features/chat/view/pages/image_viewer.dart'; // added
+import 'package:mobile/features/chat/view/pages/image_viewer.dart';
 
 class TicketBubble extends StatelessWidget {
   final String title;
@@ -12,9 +12,8 @@ class TicketBubble extends StatelessWidget {
   final bool alignRight; // if you ever need to align to right
   final VoidCallback? onTap;
   final String? creatorAvatarUrl;
-  final String? creatorName; // added
-  final String?
-  occurrenceTimeText; // NEW: issue occurrence time (inside the box)
+  final String? creatorName;
+  final String? occurrenceTimeText; // issue occurrence time (inside the box)
 
   const TicketBubble({
     super.key,
@@ -28,8 +27,8 @@ class TicketBubble extends StatelessWidget {
     this.alignRight = false,
     this.onTap,
     this.creatorAvatarUrl,
-    this.creatorName, // added
-    this.occurrenceTimeText, // NEW
+    this.creatorName,
+    this.occurrenceTimeText,
   });
 
   @override
@@ -38,12 +37,15 @@ class TicketBubble extends StatelessWidget {
     const avatarWithSpacing = 40.0; // ~32 avatar + 8 spacing
     final maxWidth = (screenWidth * 0.86) - avatarWithSpacing;
 
+    // Filter out empty URLs
+    final validAttachments =
+        attachments.where((u) => u.trim().isNotEmpty).toList();
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       child: Row(
-        mainAxisAlignment: alignRight
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!alignRight) ...[
@@ -62,12 +64,8 @@ class TicketBubble extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFFECE6F0),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(22),
-                        topRight: Radius.circular(22),
-                        bottomLeft: Radius.circular(22),
-                        bottomRight: Radius.circular(22),
-                      ),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(22)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.04),
@@ -76,21 +74,49 @@ class TicketBubble extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Stack(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Main content
+                        // ── Text content ──
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                title,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
-                                ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      title,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: severityColor,
+                                      borderRadius:
+                                          BorderRadius.circular(16),
+                                    ),
+                                    child: Text(
+                                      severityLabel,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -102,9 +128,10 @@ class TicketBubble extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              // Branch + occurrence time shown together inside the box (blue)
+                              // Branch + occurrence time
                               Wrap(
-                                crossAxisAlignment: WrapCrossAlignment.center,
+                                crossAxisAlignment:
+                                    WrapCrossAlignment.center,
                                 spacing: 12,
                                 runSpacing: 6,
                                 children: [
@@ -155,104 +182,104 @@ class TicketBubble extends StatelessWidget {
                           ),
                         ),
 
-                        // Severity chip near top-right corner
-                        PositionedDirectional(
-                          top: 12, // was 6
-                          end: 18, // was 12
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: severityColor,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              severityLabel,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                        // ── Image previews (inside bubble) ──
+                        if (validAttachments.isNotEmpty) ...[
+                          // Single image: full-width tall preview
+                          if (validAttachments.length == 1)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                              child: _buildImageTile(
+                                context,
+                                validAttachments[0],
+                                validAttachments,
+                                0,
+                                height: 180,
+                                radius: 14,
                               ),
                             ),
-                          ),
-                        ),
+
+                          // Two images: side-by-side
+                          if (validAttachments.length == 2)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildImageTile(
+                                      context,
+                                      validAttachments[0],
+                                      validAttachments,
+                                      0,
+                                      height: 120,
+                                      radius: 12,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: _buildImageTile(
+                                      context,
+                                      validAttachments[1],
+                                      validAttachments,
+                                      1,
+                                      height: 120,
+                                      radius: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // 3+ images: large first + scrollable strip
+                          if (validAttachments.length >= 3) ...[
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(10, 0, 10, 6),
+                              child: _buildImageTile(
+                                context,
+                                validAttachments[0],
+                                validAttachments,
+                                0,
+                                height: 150,
+                                radius: 12,
+                              ),
+                            ),
+                            SizedBox(
+                              height: 80,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.fromLTRB(
+                                    10, 0, 10, 10),
+                                itemCount: validAttachments.length - 1,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 6),
+                                itemBuilder: (ctx, i) => _buildImageTile(
+                                  ctx,
+                                  validAttachments[i + 1],
+                                  validAttachments,
+                                  i + 1,
+                                  height: 70,
+                                  width: 90,
+                                  radius: 10,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
-                // Attachments row (tap to view)
-                if (attachments.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 86,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: attachments.length,
-                      separatorBuilder: (_, index) => const SizedBox(width: 12),
-                      itemBuilder: (context, i) {
-                        final url = attachments[i];
-                        final hasImage = url.isNotEmpty;
-                        final thumb = ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            width: 100,
-                            height: 86,
-                            color: const Color(0xFFF0ECF8),
-                            child: hasImage
-                                ? Hero(
-                                    tag: url,
-                                    child: Image.network(
-                                      url,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, error, stackTrace) =>
-                                          Icon(
-                                            Icons.broken_image_outlined,
-                                            color: Colors.grey.shade500,
-                                          ),
-                                    ),
-                                  )
-                                : Icon(
-                                    Icons.image_outlined,
-                                    color: Colors.grey.shade500,
-                                  ),
-                          ),
-                        );
-
-                        return hasImage
-                            ? GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => ImageGalleryViewer(
-                                        urls: attachments
-                                            .where((u) => u.isNotEmpty)
-                                            .toList(),
-                                        initialIndex: attachments
-                                            .where((u) => u.isNotEmpty)
-                                            .toList()
-                                            .indexOf(url),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: thumb,
-                              )
-                            : thumb;
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
+                // Meta text (time + sender name below the bubble)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
                     _buildMetaText(
                       timeText: timeText,
                       senderName: creatorName,
-                    ), // creation time below (after images)
+                    ),
                     style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                 ),
@@ -268,13 +295,86 @@ class TicketBubble extends StatelessWidget {
     );
   }
 
+  // ── Helpers ──
+
+  Widget _buildImageTile(
+    BuildContext context,
+    String url,
+    List<String> allUrls,
+    int index, {
+    required double height,
+    double? width,
+    required double radius,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ImageGalleryViewer(
+              urls: allUrls,
+              initialIndex: index,
+              heroTagPrefix: 'ticket_',
+            ),
+          ),
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: Hero(
+            tag: 'ticket_${url}_$index',
+            child: Image.network(
+              url,
+              fit: BoxFit.cover,
+              width: width ?? double.infinity,
+              height: height,
+              loadingBuilder: (ctx, child, progress) {
+                if (progress == null) return child;
+                return Container(
+                  color: const Color(0xFFDDD6F3),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: progress.expectedTotalBytes != null
+                          ? progress.cumulativeBytesLoaded /
+                              progress.expectedTotalBytes!
+                          : null,
+                      strokeWidth: 2,
+                      color: const Color(0xFF7C5CBF),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (_, __, ___) => Container(
+                color: const Color(0xFFE8E0F0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.broken_image_outlined,
+                        color: Colors.grey.shade500, size: 28),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Failed to load',
+                      style: TextStyle(
+                          fontSize: 10, color: Colors.grey.shade500),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAvatar(String? url) {
     return CircleAvatar(
       radius: 16,
       backgroundColor: const Color(0xFFFF7489),
-      backgroundImage: (url != null && url.isNotEmpty)
-          ? NetworkImage(url)
-          : null,
+      backgroundImage:
+          (url != null && url.isNotEmpty) ? NetworkImage(url) : null,
       child: (url == null || url.isEmpty)
           ? const Icon(Icons.person, size: 18, color: Color(0xFF8AA4B8))
           : null,

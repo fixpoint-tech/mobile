@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class ImageGalleryViewer extends StatefulWidget {
   final List<String> urls;
   final int initialIndex;
+  final String heroTagPrefix;
 
   const ImageGalleryViewer({
     super.key,
     required this.urls,
     this.initialIndex = 0,
+    this.heroTagPrefix = '',
   });
 
   @override
@@ -48,7 +50,7 @@ class _ImageGalleryViewerState extends State<ImageGalleryViewer> {
                   minScale: 0.8,
                   maxScale: 4,
                   child: Hero(
-                    tag: url,
+                    tag: '${widget.heroTagPrefix}${url}_$i',
                     child: Image.network(
                       url,
                       fit: BoxFit.contain,
