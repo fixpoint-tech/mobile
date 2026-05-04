@@ -31,7 +31,7 @@ class GDMsTabContent extends StatelessWidget {
                 : null,
           ),
           title: gdm.name,
-          subtitle: gdm.branchName != null ? 'GDM | ${gdm.branchName}' : 'GDM',
+          subtitle: gdm.branchName != null ? '${gdm.employeeId} | ${gdm.branchName}' : 'GDM',
           onEdit: () {
             Navigator.of(context).push(
               MaterialPageRoute(

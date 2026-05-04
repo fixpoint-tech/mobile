@@ -657,8 +657,8 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       // Note: id, createdAt, updatedAt will be set by backend
       final newIssue = IssueModel(
         id: 0, // Backend will assign the real ID
-        branchId: branchId,
-        managerId: managerId ?? 0, // 0 signals backend to auto-assign a branch manager
+        branchId: currentUser.branchId!, // Use user's branch or default to 1
+        managerId: currentUser.branchManagerProfileId!, // Use BranchManager profile ID
         title: _taskNameController.text.trim(),
         description: _descriptionController.text.trim(),
         status: IssueStatus.open,

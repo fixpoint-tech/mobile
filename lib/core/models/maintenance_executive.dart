@@ -24,6 +24,7 @@ class MaintenanceExecutive {
 
   /// Create from JSON
   factory MaintenanceExecutive.fromJson(Map<String, dynamic> json) {
+    final maintenanceExecutiveProfile = json['maintenanceExecutiveProfile'];
     return MaintenanceExecutive(
       id: json['id'],
       name: json['name'] ?? '',
@@ -31,7 +32,7 @@ class MaintenanceExecutive {
       phone: json['phone'],
       profilePicture: json['profilePicture'],
       role: json['role'] ?? 'maintenance_executive',
-      employeeId: json['employeeId'],
+      employeeId: maintenanceExecutiveProfile?['employeeId'] ?? json['employeeId'] ?? '',
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
           : null,

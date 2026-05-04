@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/models/branch_manager.dart';
-import '../../../core/services/branch_manager_service.dart';
-import '../../user/view/edit_gpm_details_page.dart';
+import '../../../core/models/technician.dart';
+import '../../../core/services/technician_service.dart';
+import '../../user/view/edit_gpm_details_page.dart'; 
 import '../widgets/generic_list_tab_content.dart';
 import '../widgets/list_item_card.dart';
 
@@ -10,38 +10,41 @@ class GPMsTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final BranchManagerService service = BranchManagerService();
+    final TechnicianService service = TechnicianService();
 
-    return GenericListTabContent<BranchManager>(
+    return GenericListTabContent<Technician>(
       fetchItems: () async {
-        final allBranchManagers = await service.getAllBranchManagers();
-        return allBranchManagers.where((bm) => bm.branchId == null).toList();
+        return await service.getAllTechnicians();
       },
       emptyMessage: 'No GPMs found',
-      itemBuilder: (context, gpm) {
+      itemBuilder: (context, technician) {
         return ListItemCard(
           leading: CircleAvatar(
             radius: 22,
             backgroundColor: const Color(0xFF42A5F5),
-            backgroundImage: gpm.profilePicture != null
-                ? NetworkImage(gpm.profilePicture!)
+            backgroundImage: technician.profilePicture != null
+                ? NetworkImage(technician.profilePicture!)
                 : null,
-            child: gpm.profilePicture == null
+            child: technician.profilePicture == null
                 ? const Icon(Icons.person, color: Colors.white)
                 : null,
           ),
-          title: gpm.name,
-          subtitle: 'GPM',
+          title: technician.name,
+          subtitle: '${technician.employeeId} | ${technician.specialization}',
           onEdit: () {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => EditGPMDetailsPage(
-                  gpmId: gpm.id,
-                  gpmName: gpm.name,
-                  gpmOutlet: gpm.branchName,
+                  technicianId: technician.id,
+                  technicianName: technician.name,
+                  specialization: technician.specialization,
                 ),
               ),
-            );
+            ).then((value) {
+              if (value == true) {
+                // Refresh logic if needed (usually handled by GenericListTabContent)
+              }
+            });
           },
         );
       },
