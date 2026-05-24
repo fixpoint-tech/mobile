@@ -46,8 +46,16 @@ class _ChatPageState extends State<ChatPage> {
         _issue = args;
         _connectSocket();
         _scrollToBottom();
+        _refreshIssue(args.id);
       }
     }
+  }
+
+  Future<void> _refreshIssue(int issueId) async {
+    try {
+      final fresh = await _issueApiService.getIssueById(issueId);
+      if (mounted) setState(() { _issue = fresh; });
+    } catch (_) {}
   }
 
   @override
@@ -311,13 +319,61 @@ class _ChatPageState extends State<ChatPage> {
 
   void _sendMessage(String text, String? target) {
     if (_issue?.maintenanceExecutive == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Cannot send message: No Maintenance Executive accepted.',
+      final authService = AuthService.instance;
+      final currentUser = authService.currentUser;
+      if (currentUser?.role == 'maintenance_executive') {
+        final meProfileId = currentUser?.maintenanceExecutiveProfileId;
+        if (meProfileId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not find your Maintenance Executive profile. Please log out and log back in.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        showAcceptRejectIssueDialog(
+          context,
+          onAccept: () async {
+            try {
+              _showLoadingDialog('Accepting issue...');
+              final updatedIssue = await _issueApiService.assignMaintenanceExecutive(
+                _issue!.id,
+                meProfileId,
+              );
+              if (mounted) {
+                setState(() { _issue = updatedIssue; });
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Issue accepted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) Navigator.of(context).pop();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to accept: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          onReject: () {},
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Cannot send message: No Maintenance Executive accepted.',
+            ),
           ),
-        ),
-      );
+        );
+      }
       return;
     }
 
@@ -416,10 +472,43 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   /// Handle action button taps from MessageInputField
-  void _handleAction(String action) {
+  Future<void> _handleAction(String action) async {
     if (_issue == null) return;
 
     switch (action) {
+      case 'Accept Issue':
+        final authService = AuthService.instance;
+        final currentUser = authService.currentUser;
+        if (currentUser == null || currentUser.maintenanceExecutiveProfileId == null) break;
+        try {
+          _showLoadingDialog('Accepting issue...');
+          final updatedIssue = await _issueApiService.assignMaintenanceExecutive(
+            _issue!.id,
+            currentUser.maintenanceExecutiveProfileId!,
+          );
+          if (mounted) {
+            setState(() { _issue = updatedIssue; });
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Issue accepted successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) Navigator.of(context).pop();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to accept issue: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+        break;
+
       case 'Assign a Technician':
         showAssignGPMDialog(context, (technician) async {
           try {
@@ -1916,6 +2005,8 @@ class _ChatPageState extends State<ChatPage> {
               role: myRole,
               onSend: _sendMessage,
               onAction: _handleAction,
+              showAcceptButton: myRole == UserRole.executive &&
+                  _issue?.maintenanceExecutive == null,
             ),
           ],
         ),

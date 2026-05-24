@@ -67,12 +67,17 @@ class BranchService {
     String? name,
     String? location,
     int? managerId,
+    bool clearManager = false,
   }) async {
     try {
       final data = <String, dynamic>{};
       if (name != null) data['name'] = name;
       if (location != null) data['location'] = location;
-      if (managerId != null) data['manager_id'] = managerId;
+      if (clearManager) {
+        data['manager_id'] = null;
+      } else if (managerId != null) {
+        data['manager_id'] = managerId;
+      }
 
       final response = await _apiService.put('/branches/$id', data);
       

@@ -45,6 +45,8 @@ class UserProfile {
       // Also extract branchId from ME profile if not already set
       branchId ??= meProfile['branchId'] as int?;
     }
+    // Fallback: read flat key saved by toJson() when restoring from SharedPreferences
+    maintenanceExecutiveProfileId ??= json['maintenanceExecutiveProfileId'] as int?;
     
     return UserProfile(
       id: json['id'] as int,

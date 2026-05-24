@@ -5,12 +5,14 @@ class MessageInputField extends StatefulWidget {
   final UserRole role; // supplied from saved login role
   final Function(String text, String? target)? onSend;
   final Function(String action)? onAction; // callback for action buttons
+  final bool showAcceptButton;
 
   const MessageInputField({
     super.key,
     required this.role,
     this.onSend,
     this.onAction,
+    this.showAcceptButton = false,
   });
 
   @override
@@ -74,7 +76,8 @@ class _MessageInputFieldState extends State<MessageInputField> {
         actions = const ['Close Issue'];
         break;
       case UserRole.executive:
-        actions = const [
+        actions = [
+          if (widget.showAcceptButton) 'Accept Issue',
           'Update the Status',
           'Assign a Technician',
           'Get Outside Support',
@@ -158,7 +161,8 @@ class _MessageInputFieldState extends State<MessageInputField> {
         ];
         break;
       case UserRole.executive:
-        actions = const [
+        actions = [
+          if (widget.showAcceptButton) 'Accept Issue',
           'Update the Status',
           'Assign a Technician',
           'Get Outside Support',

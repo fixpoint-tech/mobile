@@ -182,13 +182,13 @@ class IssueApiService {
     int executiveId,
   ) async {
     try {
-      final response = await _apiService.post(
+      await _apiService.post(
         '/issues/$issueId/assign-maintenance-executive',
-        {'executive_id': executiveId},
+        {'maintenance_executive_id': executiveId},
       );
-
-      final issueData = response['data'] as Map<String, dynamic>;
-      return IssueModel.fromJson(issueData);
+      // Backend returns a partial issue object missing required fields like
+      // branch_id and manager_id, so fetch the full issue separately.
+      return getIssueById(issueId);
     } catch (e) {
       throw Exception(
         'Failed to assign maintenance executive: ${e.toString()}',

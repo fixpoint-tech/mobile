@@ -5,16 +5,23 @@ import '../../user/view/edit_gdm_details_page.dart';
 import '../widgets/generic_list_tab_content.dart';
 import '../widgets/list_item_card.dart';
 
-class GDMsTabContent extends StatelessWidget {
+class GDMsTabContent extends StatefulWidget {
   const GDMsTabContent({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final BranchManagerService service = BranchManagerService();
+  State<GDMsTabContent> createState() => _GDMsTabContentState();
+}
 
+class _GDMsTabContentState extends State<GDMsTabContent> {
+  final BranchManagerService _service = BranchManagerService();
+  int _refreshToken = 0;
+
+  @override
+  Widget build(BuildContext context) {
     return GenericListTabContent<BranchManager>(
+      key: ValueKey(_refreshToken),
       fetchItems: () async {
-        final allBranchManagers = await service.getAllBranchManagers();
+        final allBranchManagers = await _service.getAllBranchManagers();
         return allBranchManagers.where((bm) => bm.branchId != null).toList();
       },
       emptyMessage: 'No GDMs found',
@@ -31,9 +38,11 @@ class GDMsTabContent extends StatelessWidget {
                 : null,
           ),
           title: gdm.name,
-          subtitle: gdm.branchName != null ? '${gdm.employeeId} | ${gdm.branchName}' : 'GDM',
-          onEdit: () {
-            Navigator.of(context).push(
+          subtitle: gdm.branchName != null
+              ? '${gdm.employeeId} | ${gdm.branchName}'
+              : 'GDM',
+          onEdit: () async {
+            final updated = await Navigator.of(context).push<bool>(
               MaterialPageRoute(
                 builder: (context) => EditGDMDetailsPage(
                   gdmId: gdm.id,
@@ -42,6 +51,9 @@ class GDMsTabContent extends StatelessWidget {
                 ),
               ),
             );
+            if (updated == true && mounted) {
+              setState(() => _refreshToken++);
+            }
           },
         );
       },
