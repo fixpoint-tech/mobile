@@ -16,6 +16,7 @@ class UserProfilePage extends StatelessWidget {
     this.onLogout,
     this.email,
     this.phone,
+    this.showManageNetwork = false,
   });
 
   final String? avatarUrl;
@@ -28,6 +29,7 @@ class UserProfilePage extends StatelessWidget {
   final VoidCallback? onAccountTap;
   final VoidCallback? onManageNetworkTap;
   final VoidCallback? onHelpTap;
+  final bool showManageNetwork;
   final VoidCallback? onAboutTap;
   final VoidCallback? onLogout;
 
@@ -197,16 +199,17 @@ class UserProfilePage extends StatelessWidget {
                               Navigator.of(context).pushNamed('/profile/edit'),
                     ),
 
-                    const SizedBox(height: 12),
-
-                    _SettingCard(
-                      icon: Icons.shield_outlined,
-                      title: 'Manage Network',
-                      subtitle: 'gdms',
-                      onTap:
-                          onManageNetworkTap ??
-                          () => Navigator.of(context).pushNamed('/gdms'),
-                    ),
+                    if (showManageNetwork) ...[
+                      const SizedBox(height: 12),
+                      _SettingCard(
+                        icon: Icons.shield_outlined,
+                        title: 'Manage Network',
+                        subtitle: 'gdms',
+                        onTap:
+                            onManageNetworkTap ??
+                            () => Navigator.of(context).pushNamed('/gdms'),
+                      ),
+                    ],
 
                     const SizedBox(height: 12),
 

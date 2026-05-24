@@ -117,6 +117,8 @@ class _ProfileContainerState extends State<ProfileContainer> {
         
         final user = snapshot.data!;
         
+        final isME = AuthService.instance.currentUser?.role == 'maintenance_executive';
+
         return UserProfilePage(
           fullName: user.fullName,
           avatarUrl: user.avatarUrl,
@@ -124,9 +126,9 @@ class _ProfileContainerState extends State<ProfileContainer> {
           handle: '@${user.fullName.toLowerCase().split(' ').first}',
           email: user.email,
           phone: user.phone,
+          showManageNetwork: isME,
           onAccountTap: () async {
             await Navigator.of(context).pushNamed(RouteNames.editProfile);
-            // Refresh user data when returning from edit page
             _refreshUser();
           },
           onLogout: _handleLogout,
