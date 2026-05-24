@@ -86,11 +86,11 @@ class AppRouter {
     RouteNames.reportNewIssue: (context) => const ReportNewIssuePage(),
     RouteNames.reportedIssues: (context) => const ReportedIssuesPage(),
 
-    // ✅ Added new routes for the tabbed list pages
-    RouteNames.gdms: (context) => const NetworkTabsPage(initialIndex: 0),
-    RouteNames.gpms: (context) => const NetworkTabsPage(initialIndex: 1),
-    RouteNames.outlets: (context) => const NetworkTabsPage(initialIndex: 2),
-    RouteNames.mes: (context) => const NetworkTabsPage(initialIndex: 3),
+    // Manage Network tabs — ME only
+    RouteNames.gdms: (context) => _meOnly(context, const NetworkTabsPage(initialIndex: 0)),
+    RouteNames.gpms: (context) => _meOnly(context, const NetworkTabsPage(initialIndex: 1)),
+    RouteNames.outlets: (context) => _meOnly(context, const NetworkTabsPage(initialIndex: 2)),
+    RouteNames.mes: (context) => _meOnly(context, const NetworkTabsPage(initialIndex: 3)),
 
     // About page removed
 
@@ -100,6 +100,18 @@ class AppRouter {
     // Notifications page
     RouteNames.notifications: (context) => const NotificationsPage(),
   };
+
+  /// Returns [page] only for maintenance_executive; otherwise shows an access-denied screen.
+  static Widget _meOnly(BuildContext context, Widget page) {
+    final role = AuthService.instance.currentUser?.role;
+    if (role == 'maintenance_executive') return page;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Access Denied')),
+      body: const Center(
+        child: Text('This section is only accessible to Maintenance Executives.'),
+      ),
+    );
+  }
 
   /// Handles undefined routes.
   static Route<dynamic> onUnknownRoute(RouteSettings settings) {

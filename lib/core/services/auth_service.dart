@@ -35,18 +35,18 @@ class UserProfile {
     
     final branchManagerProfile = json['branchManagerProfile'] as Map<String, dynamic>?;
     if (branchManagerProfile != null) {
-      branchId = branchManagerProfile['branchId'] as int?;
-      branchManagerProfileId = branchManagerProfile['id'] as int?;
+      branchId = (branchManagerProfile['branchId'] as num?)?.toInt();
+      branchManagerProfileId = (branchManagerProfile['id'] as num?)?.toInt();
     }
 
     final meProfile = json['maintenanceExecutiveProfile'] as Map<String, dynamic>?;
     if (meProfile != null) {
-      maintenanceExecutiveProfileId = meProfile['id'] as int?;
-      // Also extract branchId from ME profile if not already set
-      branchId ??= meProfile['branchId'] as int?;
+      maintenanceExecutiveProfileId = (meProfile['id'] as num?)?.toInt();
+      branchId ??= (meProfile['branchId'] as num?)?.toInt();
     }
-    // Fallback: read flat key saved by toJson() when restoring from SharedPreferences
-    maintenanceExecutiveProfileId ??= json['maintenanceExecutiveProfileId'] as int?;
+    // Fallback: read flat keys saved by toJson() when restoring from SharedPreferences
+    maintenanceExecutiveProfileId ??= (json['maintenanceExecutiveProfileId'] as num?)?.toInt();
+    branchManagerProfileId ??= (json['branchManagerProfileId'] as num?)?.toInt();
     
     return UserProfile(
       id: json['id'] as int,
@@ -55,7 +55,7 @@ class UserProfile {
       role: json['role'] as String,
       phone: json['phone'] as String?,
       profilePicture: json['profilePicture'] as String?,
-      branchId: branchId ?? json['branchId'] as int?,
+      branchId: branchId ?? (json['branchId'] as num?)?.toInt(),
       branchManagerProfileId: branchManagerProfileId,
       maintenanceExecutiveProfileId: maintenanceExecutiveProfileId,
     );

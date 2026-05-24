@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../../core/models/app_user.dart';
+import '../../../core/models/branch.dart';
 import '../../../theme/app_colors.dart';
 import '../controller/profile_controller.dart';
 import '../data/api_user_repository.dart';
@@ -313,10 +315,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
                 const SizedBox(height: 12),
 
-                _FilledField(
-                  controller: _controller.extraFieldController,
-                  hintText: _controller.extraFieldLabel,
-                ),
+                if (user.role == UserRole.branchManager)
+                  _OutletDropdown(
+                    isLoading: _controller.isLoadingBranches,
+                    branches: _controller.branches,
+                    value: _controller.selectedBranch,
+                    onChanged: _controller.setSelectedBranch,
+                  )
+                else
+                  _FilledField(
+                    controller: _controller.extraFieldController,
+                    hintText: _controller.extraFieldLabel,
+                  ),
 
                 const SizedBox(height: 36),
 
@@ -460,6 +470,74 @@ class _FlagImage extends StatelessWidget {
       fit: BoxFit.cover,
       placeholderBuilder: (context) =>
           const Icon(Icons.phone, size: 14, color: AppColors.textSecondary),
+    );
+  }
+}
+
+/// Outlet dropdown for branch manager
+class _OutletDropdown extends StatelessWidget {
+  const _OutletDropdown({
+    required this.isLoading,
+    required this.branches,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool isLoading;
+  final List<Branch> branches;
+  final Branch? value;
+  final ValueChanged<Branch?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 45,
+      decoration: BoxDecoration(
+        color: AppColors.primary100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: isLoading
+          ? const Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : DropdownButtonHideUnderline(
+              child: DropdownButton<Branch>(
+                value: value,
+                hint: const Text(
+                  'Select Outlet',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontFamily: 'Outfit',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                isExpanded: true,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColors.textTitle,
+                  size: 20,
+                ),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'Outfit',
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textTitle,
+                ),
+                items: branches.map((branch) {
+                  return DropdownMenuItem<Branch>(
+                    value: branch,
+                    child: Text('${branch.name} - ${branch.location}'),
+                  );
+                }).toList(),
+                onChanged: branches.isEmpty ? null : onChanged,
+              ),
+            ),
     );
   }
 }
