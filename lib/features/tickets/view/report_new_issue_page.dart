@@ -181,7 +181,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                   const SizedBox(height: 24),
 
                   if (isMaintenanceExecutive) ...[
-                    _buildSectionLabel('Branch'),
+                    _buildSectionLabel('Outlet'),
                     const SizedBox(height: 8),
                     if (_isLoadingBranches)
                       const Row(
@@ -214,7 +214,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                       )
                     else if (_branches.isEmpty)
                       const Text(
-                        'No branches with managers assigned',
+                        'No outlets with managers assigned',
                         style: TextStyle(color: Colors.grey, fontSize: 12),
                       )
                     else
@@ -235,7 +235,7 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                           });
                         },
                         decoration: InputDecoration(
-                          hintText: 'Select branch',
+                          hintText: 'Select outlet',
                           hintStyle: TextStyle(color: Colors.grey[400]),
                           filled: true,
                           fillColor: Colors.grey[100],
@@ -810,15 +810,15 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
       if (isExecutive) {
         final selectedBranch = _selectedBranch;
         if (selectedBranch == null) {
-          _showErrorDialog('Please select a branch');
+          _showErrorDialog('Please select an outlet');
           return;
         }
         if (selectedBranch.id == null) {
-          _showErrorDialog('Selected branch is invalid');
+          _showErrorDialog('Selected outlet is invalid');
           return;
         }
         if (selectedBranch.managerId == null) {
-          _showErrorDialog('Selected branch has no manager assigned');
+          _showErrorDialog('Selected outlet has no manager assigned');
           return;
         }
         branchId = selectedBranch.id!;

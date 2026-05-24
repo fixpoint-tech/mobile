@@ -42,7 +42,7 @@ class _AddOutletPageState extends State<AddOutletPage> {
     try {
       final managers = await _managerService.getAllBranchManagers();
       final available = managers
-          .where((m) => m.branchId == null && m.profileId != null)
+          .where((m) => m.profileId != null)
           .toList();
       if (!mounted) return;
       setState(() {

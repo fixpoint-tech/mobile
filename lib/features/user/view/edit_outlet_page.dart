@@ -301,19 +301,9 @@ class _EditOutletPageState extends State<EditOutletPage> {
 
   @override
   Widget build(BuildContext context) {
-    final availableManagers = _outlet?.managerId == null
-      ? _managers
-        .where((m) => m.branchId == null && m.profileId != null)
-        .toList()
-        : _managers
-            .where(
-              (m) =>
-            m.profileId != null &&
-            (m.branchId == null ||
-              m.profileId == _outlet!.managerId ||
-              m.id == _outlet!.managerId),
-            )
-            .toList();
+    final availableManagers = _managers
+        .where((m) => m.profileId != null)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
