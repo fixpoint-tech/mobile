@@ -165,15 +165,12 @@ class IssueApiService {
   }
 
   /// Assign technician to issue
-  Future<IssueModel> assignTechnician(int issueId, int technicianId) async {
+  Future<void> assignTechnician(int issueId, int technicianId) async {
     try {
-      final response = await _apiService.post(
+      await _apiService.post(
         '/issues/$issueId/assign-technician',
         {'technician_id': technicianId},
       );
-
-      final issueData = response['data'] as Map<String, dynamic>;
-      return IssueModel.fromJson(issueData);
     } catch (e) {
       throw Exception('Failed to assign technician: ${e.toString()}');
     }
