@@ -75,13 +75,18 @@ class BranchManagerService {
     String? phone,
     int? branchId,
     String? employeeId,
+    bool clearBranch = false,
   }) async {
     try {
       final data = <String, dynamic>{};
       if (name != null) data['name'] = name;
       if (email != null) data['email'] = email;
       if (phone != null) data['phone'] = phone;
-      if (branchId != null) data['branchId'] = branchId;
+      if (clearBranch) {
+        data['branchId'] = null;
+      } else if (branchId != null) {
+        data['branchId'] = branchId;
+      }
       if (employeeId != null) data['employeeId'] = employeeId;
 
       final response = await _apiService.put('/users/branch-managers/$id', data);

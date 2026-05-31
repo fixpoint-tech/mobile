@@ -1,6 +1,7 @@
 /// Branch Manager Model (GDM/GPM)
 class BranchManager {
   final int? id;
+  final int? profileId;
   final String name;
   final String email;
   final String? phone;
@@ -15,6 +16,7 @@ class BranchManager {
 
   BranchManager({
     this.id,
+    this.profileId,
     required this.name,
     required this.email,
     this.phone,
@@ -32,12 +34,16 @@ class BranchManager {
   factory BranchManager.fromJson(Map<String, dynamic> json) {
     // Extract branchId from nested branchManagerProfile
     final branchManagerProfile = json['branchManagerProfile'];
+    final int? profileId = branchManagerProfile != null
+        ? branchManagerProfile['id'] as int?
+        : null;
     final int? branchId = branchManagerProfile != null 
         ? branchManagerProfile['branchId'] 
         : json['branchId'];
     
     return BranchManager(
       id: json['id'],
+      profileId: profileId,
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'],
@@ -60,6 +66,7 @@ class BranchManager {
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
+      if (profileId != null) 'branchManagerProfileId': profileId,
       'name': name,
       'email': email,
       if (phone != null) 'phone': phone,

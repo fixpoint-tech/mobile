@@ -46,8 +46,16 @@ class _ChatPageState extends State<ChatPage> {
         _issue = args;
         _connectSocket();
         _scrollToBottom();
+        _refreshIssue(args.id);
       }
     }
+  }
+
+  Future<void> _refreshIssue(int issueId) async {
+    try {
+      final fresh = await _issueApiService.getIssueById(issueId);
+      if (mounted) setState(() { _issue = fresh; });
+    } catch (_) {}
   }
 
   @override
@@ -150,35 +158,47 @@ class _ChatPageState extends State<ChatPage> {
     _socket!.on('issue_update', (data) {
       print('Received issue update: $data');
 
-      // Handle Petty Cash Update
-      if (data is Map<String, dynamic> &&
-          data.containsKey('amount') &&
-          data.containsKey('technician_id')) {
-        if (mounted && _issue != null) {
-          try {
-            final newRequest = PettyCashRequestModel.fromJson(data);
-            final currentRequests = List<PettyCashRequestModel>.from(
-              _issue!.pettyCashRequests ?? [],
-            );
+      if (data is Map<String, dynamic>) {
+        // Handle Petty Cash Update
+        if (data.containsKey('amount') && data.containsKey('technician_id')) {
+          if (mounted && _issue != null) {
+            try {
+              final newRequest = PettyCashRequestModel.fromJson(data);
+              final currentRequests = List<PettyCashRequestModel>.from(
+                _issue!.pettyCashRequests ?? [],
+              );
 
-            final index = currentRequests.indexWhere(
-              (r) => r.id == newRequest.id,
-            );
-            if (index != -1) {
-              currentRequests[index] = newRequest;
-            } else {
-              currentRequests.add(newRequest);
+              final index = currentRequests.indexWhere(
+                (r) => r.id == newRequest.id,
+              );
+              if (index != -1) {
+                currentRequests[index] = newRequest;
+              } else {
+                currentRequests.add(newRequest);
+              }
+
+              setState(() {
+                _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
+              });
+              _scrollToBottom();
+            } catch (e) {
+              print('Error parsing petty cash update: $e');
             }
-
-            setState(() {
-              _issue = _issue!.copyWith(pettyCashRequests: currentRequests);
-            });
-            _scrollToBottom();
-          } catch (e) {
-            print('Error parsing petty cash update: $e');
           }
+          return;
         }
-        return;
+
+        if (data['success'] == true && data['data'] is Map<String, dynamic>) {
+          _applyIssueUpdateFields(data['data'] as Map<String, dynamic>);
+          return;
+        }
+
+        if (data.containsKey('status') ||
+            data.containsKey('technician_id') ||
+            data.containsKey('maintenance_executive_id') ||
+            data.containsKey('third_party_id')) {
+          _applyIssueUpdateFields(data);
+        }
       }
     });
 
@@ -207,50 +227,11 @@ class _ChatPageState extends State<ChatPage> {
       }
     });
 
-    // ── issue_update: general issue field updates ──
+    // ── issue_update_fields: legacy event name ──
     _socket!.on('issue_update_fields', (data) {
       if (data is Map<String, dynamic> && data['success'] == true) {
         final updateData = data['data'] as Map<String, dynamic>;
-        if (mounted && _issue != null) {
-          setState(() {
-            _issue = _issue!.copyWith(
-              status: updateData['status'] != null
-                  ? IssueStatus.fromString(updateData['status'])
-                  : null,
-              maintenanceExecutiveId: updateData['maintenance_executive_id'],
-              technicianId: updateData['technician_id'],
-              thirdPartyId: updateData['third_party_id'],
-              maintenanceExecutiveAssignedAt:
-                  updateData['maintenance_executive_assigned_at'] != null
-                  ? DateTime.parse(
-                      updateData['maintenance_executive_assigned_at'],
-                    )
-                  : null,
-              technicianAssignedAt: updateData['technician_assigned_at'] != null
-                  ? DateTime.parse(updateData['technician_assigned_at'])
-                  : null,
-              thirdPartyAssignedAt:
-                  updateData['third_party_assigned_at'] != null
-                  ? DateTime.parse(updateData['third_party_assigned_at'])
-                  : null,
-              updatedAt: updateData['updatedAt'] != null
-                  ? DateTime.parse(updateData['updatedAt'])
-                  : null,
-              maintenanceExecutive: updateData['maintenanceExecutive'] != null
-                  ? MaintenanceExecutiveInfo.fromJson(
-                      updateData['maintenanceExecutive'],
-                    )
-                  : null,
-              technician: updateData['technician'] != null
-                  ? TechnicianInfo.fromJson(updateData['technician'])
-                  : null,
-              thirdParty: updateData['thirdParty'] != null
-                  ? ThirdPartyInfo.fromJson(updateData['thirdParty'])
-                  : null,
-            );
-          });
-          _scrollToBottom();
-        }
+        _applyIssueUpdateFields(updateData);
       }
     });
 
@@ -294,15 +275,105 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  void _applyIssueUpdateFields(Map<String, dynamic> updateData) {
+    if (!mounted || _issue == null) return;
+
+    setState(() {
+      _issue = _issue!.copyWith(
+        status: updateData['status'] != null
+            ? IssueStatus.fromString(updateData['status'])
+            : null,
+        maintenanceExecutiveId: updateData['maintenance_executive_id'],
+        technicianId: updateData['technician_id'],
+        thirdPartyId: updateData['third_party_id'],
+        maintenanceExecutiveAssignedAt:
+            updateData['maintenance_executive_assigned_at'] != null
+            ? DateTime.parse(
+                updateData['maintenance_executive_assigned_at'],
+              )
+            : null,
+        technicianAssignedAt: updateData['technician_assigned_at'] != null
+            ? DateTime.parse(updateData['technician_assigned_at'])
+            : null,
+        thirdPartyAssignedAt: updateData['third_party_assigned_at'] != null
+            ? DateTime.parse(updateData['third_party_assigned_at'])
+            : null,
+        updatedAt: updateData['updatedAt'] != null
+            ? DateTime.parse(updateData['updatedAt'])
+            : null,
+        maintenanceExecutive: updateData['maintenanceExecutive'] != null
+            ? MaintenanceExecutiveInfo.fromJson(
+                updateData['maintenanceExecutive'],
+              )
+            : null,
+        technician: updateData['technician'] != null
+            ? TechnicianInfo.fromJson(updateData['technician'])
+            : null,
+        thirdParty: updateData['thirdParty'] != null
+            ? ThirdPartyInfo.fromJson(updateData['thirdParty'])
+            : null,
+      );
+    });
+    _scrollToBottom();
+  }
+
   void _sendMessage(String text, String? target) {
     if (_issue?.maintenanceExecutive == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Cannot send message: No Maintenance Executive accepted.',
+      final authService = AuthService.instance;
+      final currentUser = authService.currentUser;
+      if (currentUser?.role == 'maintenance_executive') {
+        final meProfileId = currentUser?.maintenanceExecutiveProfileId;
+        if (meProfileId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not find your Maintenance Executive profile. Please log out and log back in.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        showAcceptRejectIssueDialog(
+          context,
+          onAccept: () async {
+            try {
+              _showLoadingDialog('Accepting issue...');
+              final updatedIssue = await _issueApiService.assignMaintenanceExecutive(
+                _issue!.id,
+                meProfileId,
+              );
+              if (mounted) {
+                setState(() { _issue = updatedIssue; });
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Issue accepted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) Navigator.of(context).pop();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to accept: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          onReject: () {},
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Cannot send message: No Maintenance Executive accepted.',
+            ),
           ),
-        ),
-      );
+        );
+      }
       return;
     }
 
@@ -401,10 +472,43 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   /// Handle action button taps from MessageInputField
-  void _handleAction(String action) {
+  Future<void> _handleAction(String action) async {
     if (_issue == null) return;
 
     switch (action) {
+      case 'Accept Issue':
+        final authService = AuthService.instance;
+        final currentUser = authService.currentUser;
+        if (currentUser == null || currentUser.maintenanceExecutiveProfileId == null) break;
+        try {
+          _showLoadingDialog('Accepting issue...');
+          final updatedIssue = await _issueApiService.assignMaintenanceExecutive(
+            _issue!.id,
+            currentUser.maintenanceExecutiveProfileId!,
+          );
+          if (mounted) {
+            setState(() { _issue = updatedIssue; });
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Issue accepted successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) Navigator.of(context).pop();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to accept issue: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+        break;
+
       case 'Assign a Technician':
         showAssignGPMDialog(context, (technician) async {
           try {
@@ -412,18 +516,13 @@ class _ChatPageState extends State<ChatPage> {
             _showLoadingDialog('Assigning technician...');
 
             // Call API to assign technician
-            final updatedIssue = await _issueApiService.assignTechnician(
+            await _issueApiService.assignTechnician(
               _issue!.id,
               technician.id,
             );
 
             // Dismiss loading
             if (mounted) Navigator.of(context).pop();
-
-            // Update local state
-            setState(() {
-              _issue = updatedIssue;
-            });
 
             // Show success message
             if (mounted) {
@@ -1906,6 +2005,8 @@ class _ChatPageState extends State<ChatPage> {
               role: myRole,
               onSend: _sendMessage,
               onAction: _handleAction,
+              showAcceptButton: myRole == UserRole.executive &&
+                  _issue?.maintenanceExecutive == null,
             ),
           ],
         ),

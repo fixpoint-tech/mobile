@@ -21,10 +21,10 @@ class Branch {
   /// Create from JSON
   factory Branch.fromJson(Map<String, dynamic> json) {
     return Branch(
-      id: json['id'],
+      id: (json['id'] as num?)?.toInt(),
       name: json['name'] ?? '',
       location: json['location'] ?? '',
-      managerId: json['manager_id'],
+      managerId: (json['manager_id'] as num?)?.toInt(),
       managerName: json['Manager']?['name'],
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])

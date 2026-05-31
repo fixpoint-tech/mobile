@@ -5,15 +5,22 @@ import '../../user/view/edit_outlet_page.dart';
 import '../widgets/generic_list_tab_content.dart';
 import '../widgets/list_item_card.dart';
 
-class OutletsTabContent extends StatelessWidget {
+class OutletsTabContent extends StatefulWidget {
   const OutletsTabContent({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final BranchService service = BranchService();
+  State<OutletsTabContent> createState() => _OutletsTabContentState();
+}
 
+class _OutletsTabContentState extends State<OutletsTabContent> {
+  final BranchService _service = BranchService();
+  int _refreshToken = 0;
+
+  @override
+  Widget build(BuildContext context) {
     return GenericListTabContent<Branch>(
-      fetchItems: service.getAllBranches,
+      key: ValueKey(_refreshToken),
+      fetchItems: _service.getAllBranches,
       emptyMessage: 'No outlets found',
       itemBuilder: (context, outlet) {
         return ListItemCard(
@@ -28,8 +35,8 @@ class OutletsTabContent extends StatelessWidget {
           ),
           title: outlet.displayName,
           subtitle: outlet.displayAddress,
-          onEdit: () {
-            Navigator.of(context).push(
+          onEdit: () async {
+            final updated = await Navigator.of(context).push<bool>(
               MaterialPageRoute(
                 builder: (context) => EditOutletPage(
                   outletId: outlet.id,
@@ -38,6 +45,9 @@ class OutletsTabContent extends StatelessWidget {
                 ),
               ),
             );
+            if (updated == true && mounted) {
+              setState(() => _refreshToken++);
+            }
           },
         );
       },

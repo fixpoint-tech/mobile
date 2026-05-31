@@ -6,6 +6,10 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../controller/issue_controller.dart';
 import '../model/issue_model.dart';
+import '../../../core/models/branch.dart';
+import '../../../core/models/branch_manager.dart';
+import '../../../core/services/branch_manager_service.dart';
+import '../../../core/services/branch_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/upload_service.dart';
@@ -26,13 +30,20 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
   final TextEditingController _descriptionController = TextEditingController();
   final IssueController _issueController = IssueController();
   final ImagePicker _imagePicker = ImagePicker();
+  final BranchService _branchService = BranchService();
+  final BranchManagerService _branchManagerService = BranchManagerService();
   
   bool _isUploadingFiles = false;
+  bool _isLoadingBranches = false;
+  String? _branchLoadError;
+  List<Branch> _branches = [];
+  Branch? _selectedBranch;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = DateTime.now(); // Use current date as default
+    _loadBranchesIfNeeded();
   }
 
   @override
@@ -43,9 +54,85 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
     // _issueController.dispose();
     super.dispose();
   }
+  
+  void _loadBranchesIfNeeded() {
+    final currentUser = AuthService.instance.currentUser;
+    if (currentUser?.role == 'maintenance_executive') {
+      _loadBranches();
+    }
+  }
+
+  Future<void> _loadBranches() async {
+    setState(() {
+      _isLoadingBranches = true;
+      _branchLoadError = null;
+    });
+
+    try {
+      final branches = await _branchService.getAllBranches();
+      final managers = await _branchManagerService.getAllBranchManagers();
+      final managerIdMap = <int, int?>{};
+      for (final BranchManager manager in managers) {
+        if (manager.id != null) {
+          managerIdMap[manager.id!] = manager.profileId;
+        }
+      }
+
+      final normalized = branches.map((branch) {
+        final originalManagerId = branch.managerId;
+        if (originalManagerId != null &&
+            managerIdMap.containsKey(originalManagerId) &&
+            managerIdMap[originalManagerId] != null) {
+          return Branch(
+            id: branch.id,
+            name: branch.name,
+            location: branch.location,
+            managerId: managerIdMap[originalManagerId],
+            managerName: branch.managerName,
+            createdAt: branch.createdAt,
+            updatedAt: branch.updatedAt,
+          );
+        }
+        return branch;
+      }).toList();
+
+      final availableBranches = normalized
+          .where((branch) => branch.managerId != null)
+          .toList();
+      final currentUser = AuthService.instance.currentUser;
+      Branch? selected;
+
+      if (currentUser?.branchId != null) {
+        for (final branch in availableBranches) {
+          if (branch.id == currentUser!.branchId) {
+            selected = branch;
+            break;
+          }
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _branches = availableBranches;
+        _selectedBranch = selected;
+        _isLoadingBranches = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingBranches = false;
+        _branchLoadError = e.toString();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = AuthService.instance.currentUser;
+    final isMaintenanceExecutive =
+        currentUser?.role == 'maintenance_executive';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -92,6 +179,78 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
                     ],
                   ),
                   const SizedBox(height: 24),
+
+                  if (isMaintenanceExecutive) ...[
+                    _buildSectionLabel('Outlet'),
+                    const SizedBox(height: 8),
+                    if (_isLoadingBranches)
+                      const Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Loading branches...', style: TextStyle(fontSize: 12)),
+                        ],
+                      )
+                    else if (_branchLoadError != null)
+                      Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Failed to load branches',
+                              style: TextStyle(color: Colors.red[700], fontSize: 12),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: _loadBranches,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      )
+                    else if (_branches.isEmpty)
+                      const Text(
+                        'No outlets with managers assigned',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      )
+                    else
+                      DropdownButtonFormField<Branch>(
+                        value: _selectedBranch,
+                        isExpanded: true,
+                        items: _branches
+                            .map(
+                              (branch) => DropdownMenuItem(
+                                value: branch,
+                                child: Text('${branch.name} - ${branch.location}'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (branch) {
+                          setState(() {
+                            _selectedBranch = branch;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Select outlet',
+                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                  ],
 
                   // Reported On
                   _buildSectionLabel('Reported On'),
@@ -644,21 +803,47 @@ class _ReportNewIssuePageState extends State<ReportNewIssuePage> {
         _showErrorDialog('User not logged in');
         return;
       }
-      
-      // Use branch 1 as default if user doesn't have a branch assigned
-      final branchId = currentUser.branchId ?? 1;
-      
-      // Determine manager_id based on user role:
-      // - Branch managers use their own profile ID
-      // - All other roles (maintenance executive, etc.) send 0/null so backend auto-assigns
-      final int? managerId = currentUser.branchManagerProfileId;
+      final isExecutive = currentUser.role == 'maintenance_executive';
+      int branchId;
+      int managerId;
+
+      if (isExecutive) {
+        final selectedBranch = _selectedBranch;
+        if (selectedBranch == null) {
+          _showErrorDialog('Please select an outlet');
+          return;
+        }
+        if (selectedBranch.id == null) {
+          _showErrorDialog('Selected outlet is invalid');
+          return;
+        }
+        if (selectedBranch.managerId == null) {
+          _showErrorDialog('Selected outlet has no manager assigned');
+          return;
+        }
+        branchId = selectedBranch.id!;
+        managerId = selectedBranch.managerId!;
+      } else {
+        final userBranchId = currentUser.branchId;
+        if (userBranchId == null) {
+          _showErrorDialog('No branch assigned to this user');
+          return;
+        }
+        branchId = userBranchId;
+        final branchManagerId = currentUser.branchManagerProfileId;
+        if (branchManagerId == null) {
+          _showErrorDialog('No branch manager profile found');
+          return;
+        }
+        managerId = branchManagerId;
+      }
       
       // Create new issue
       // Note: id, createdAt, updatedAt will be set by backend
       final newIssue = IssueModel(
         id: 0, // Backend will assign the real ID
-        branchId: currentUser.branchId!, // Use user's branch or default to 1
-        managerId: currentUser.branchManagerProfileId!, // Use BranchManager profile ID
+        branchId: branchId,
+        managerId: managerId,
         title: _taskNameController.text.trim(),
         description: _descriptionController.text.trim(),
         status: IssueStatus.open,

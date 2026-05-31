@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/models/branch.dart';
 import '../../../core/models/branch_manager.dart';
+import '../../../core/services/branch_service.dart';
 import '../../../core/services/branch_manager_service.dart';
 import '../../../theme/app_colors.dart';
 import '../../../shared/widgets/custom_text_field.dart';
@@ -24,11 +26,14 @@ class EditGDMDetailsPage extends StatefulWidget {
 
 class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
   final BranchManagerService _service = BranchManagerService();
+  final BranchService _branchService = BranchService();
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
-  String? _selectedOutlet;
+  List<Branch> _outlets = [];
+  Branch? _selectedOutlet;
+  bool _isLoadingOutlets = true;
   bool _isLoading = false;
   bool _isLoadingData = false;
   BranchManager? _gdm;
@@ -46,11 +51,53 @@ class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
     );
     _phoneController = TextEditingController();
     _emailController = TextEditingController();
-    _selectedOutlet = widget.gdmOutlet;
+    _selectedOutlet = null;
 
     // Load full data if ID is provided
     if (widget.gdmId != null) {
       _loadGDMData();
+    }
+
+    _loadOutlets();
+  }
+
+  Future<void> _loadOutlets() async {
+    try {
+      final outlets = await _branchService.getAllBranches();
+      if (!mounted) return;
+      setState(() {
+        _outlets = outlets;
+        _isLoadingOutlets = false;
+      });
+      _syncSelectedOutlet();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingOutlets = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load outlets: ${e.toString()}'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  void _syncSelectedOutlet() {
+    final outletId = _gdm?.branchId;
+    if (outletId == null || _outlets.isEmpty) return;
+    for (final outlet in _outlets) {
+      if (outlet.id == outletId) {
+        if (mounted) {
+          setState(() {
+            _selectedOutlet = outlet;
+          });
+        } else {
+          _selectedOutlet = outlet;
+        }
+        break;
+      }
     }
   }
 
@@ -67,9 +114,9 @@ class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
             nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
         _phoneController.text = gdm.phone ?? '';
         _emailController.text = gdm.email;
-        _selectedOutlet = gdm.branchName;
         _isLoadingData = false;
       });
+      _syncSelectedOutlet();
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingData = false);
@@ -118,15 +165,54 @@ class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
       return;
     }
 
+    if (_selectedOutlet == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an outlet'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedOutlet?.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selected outlet is invalid'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      await _service.updateBranchManager(
+      final previousBranchId = _gdm?.branchId;
+
+      final updatedManager = await _service.updateBranchManager(
         id: widget.gdmId!,
         name: '$firstName $lastName',
         email: email,
         phone: phone.isNotEmpty ? phone : null,
+        branchId: _selectedOutlet!.id,
       );
+
+      if (updatedManager.profileId == null) {
+        throw Exception('GDM profile is missing');
+      }
+
+      await _branchService.updateBranch(
+        id: _selectedOutlet!.id!,
+        managerId: updatedManager.profileId,
+      );
+
+      if (previousBranchId != null && previousBranchId != _selectedOutlet!.id) {
+        await _branchService.updateBranch(
+          id: previousBranchId,
+          clearManager: true,
+        );
+      }
 
       if (!mounted) return;
 
@@ -389,6 +475,8 @@ class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
 
                 // Outlet dropdown
                 _OutletDropdown(
+                  isLoading: _isLoadingOutlets,
+                  outlets: _outlets,
                   value: _selectedOutlet,
                   onChanged: (value) {
                     setState(() => _selectedOutlet = value);
@@ -437,10 +525,17 @@ class _EditGDMDetailsPageState extends State<EditGDMDetailsPage> {
 
 /// Outlet dropdown field
 class _OutletDropdown extends StatelessWidget {
-  const _OutletDropdown({required this.value, required this.onChanged});
+  const _OutletDropdown({
+    required this.isLoading,
+    required this.outlets,
+    required this.value,
+    required this.onChanged,
+  });
 
-  final String? value;
-  final ValueChanged<String?> onChanged;
+  final bool isLoading;
+  final List<Branch> outlets;
+  final Branch? value;
+  final ValueChanged<Branch?> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -451,41 +546,47 @@ class _OutletDropdown extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          hint: const Text(
-            'Name of the Outlet',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-              fontFamily: 'Outfit',
-              fontWeight: FontWeight.w400,
+      child: isLoading
+          ? const Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : DropdownButtonHideUnderline(
+              child: DropdownButton<Branch>(
+                value: value,
+                hint: const Text(
+                  'Name of the Outlet',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontFamily: 'Outfit',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                isExpanded: true,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColors.textTitle,
+                  size: 20,
+                ),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'Outfit',
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textTitle,
+                ),
+                items: outlets.map((outlet) {
+                  return DropdownMenuItem<Branch>(
+                    value: outlet,
+                    child: Text(outlet.name),
+                  );
+                }).toList(),
+                onChanged: outlets.isEmpty ? null : onChanged,
+              ),
             ),
-          ),
-          isExpanded: true,
-          icon: const Icon(
-            Icons.keyboard_arrow_down,
-            color: AppColors.textTitle,
-            size: 20,
-          ),
-          style: const TextStyle(
-            fontSize: 12,
-            fontFamily: 'Outfit',
-            fontWeight: FontWeight.w400,
-            color: AppColors.textTitle,
-          ),
-          items: const [
-            DropdownMenuItem(
-              value: 'Kottawa Outlet',
-              child: Text('Kottawa Outlet'),
-            ),
-            DropdownMenuItem(value: 'Outlet2', child: Text('Outlet2')),
-            DropdownMenuItem(value: 'Outlet3', child: Text('Outlet3')),
-          ],
-          onChanged: onChanged,
-        ),
-      ),
     );
   }
 }

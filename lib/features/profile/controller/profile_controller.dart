@@ -2,6 +2,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/models/app_user.dart';
+import '../../../core/models/branch.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/branch_service.dart';
 import '../data/user_repository.dart';
 
 /// Controller for managing profile state and operations
@@ -22,6 +25,12 @@ class ProfileController extends ChangeNotifier {
   XFile? _selectedImage;
   Uint8List? _selectedImageBytes;
 
+  // Branch dropdown state (branch manager only)
+  final BranchService _branchService = BranchService();
+  List<Branch> _branches = [];
+  Branch? _selectedBranch;
+  bool _isLoadingBranches = false;
+
   ProfileController({required UserRepository repository})
     : _repository = repository {
     _loadCurrentUser();
@@ -32,6 +41,14 @@ class ProfileController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   XFile? get selectedImage => _selectedImage;
   Uint8List? get selectedImageBytes => _selectedImageBytes;
+  List<Branch> get branches => _branches;
+  Branch? get selectedBranch => _selectedBranch;
+  bool get isLoadingBranches => _isLoadingBranches;
+
+  void setSelectedBranch(Branch? branch) {
+    _selectedBranch = branch;
+    notifyListeners();
+  }
 
   /// Get the label for the extra field based on user role
   String get extraFieldLabel {
@@ -43,6 +60,32 @@ class ProfileController extends ChangeNotifier {
         return 'Email';
       case UserRole.maintenanceExecutive:
         return 'Location';
+    }
+  }
+
+  /// Load branches for branch manager outlet dropdown
+  Future<void> loadBranches() async {
+    _isLoadingBranches = true;
+    notifyListeners();
+    try {
+      _branches = await _branchService.getAllBranches();
+      _selectedBranch = null;
+
+      // branchManagerProfile.branchId from login/GET /users/:id == Branch.id
+      final branchId = AuthService.instance.currentUser?.branchId;
+      if (branchId != null) {
+        for (final b in _branches) {
+          if (b.id == branchId) {
+            _selectedBranch = b;
+            break;
+          }
+        }
+      }
+    } catch (_) {
+      _branches = [];
+    } finally {
+      _isLoadingBranches = false;
+      notifyListeners();
     }
   }
 
@@ -95,6 +138,10 @@ class ProfileController extends ChangeNotifier {
             _currentUser!.email != null) {
           extraFieldController.text = _currentUser!.email!;
         }
+
+        if (_currentUser!.role == UserRole.branchManager) {
+          loadBranches();
+        }
       }
 
       _errorMessage = null;
@@ -115,6 +162,16 @@ class ProfileController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // For branch managers, use the selected branch ID from dropdown
+      String? extraField;
+      if (_currentUser!.role == UserRole.branchManager) {
+        extraField = _selectedBranch?.id?.toString();
+      } else {
+        extraField = extraFieldController.text.trim().isEmpty
+            ? null
+            : extraFieldController.text.trim();
+      }
+
       await _repository.updateProfile(
         userId: _currentUser!.id,
         firstName: firstNameController.text.trim().isEmpty
@@ -129,9 +186,7 @@ class ProfileController extends ChangeNotifier {
         password: passwordController.text.trim().isEmpty
             ? null
             : passwordController.text.trim(),
-        extraField: extraFieldController.text.trim().isEmpty
-            ? null
-            : extraFieldController.text.trim(),
+        extraField: extraField,
         profileImageBytes: _selectedImageBytes,
         profileImageName: _selectedImage?.name,
       );

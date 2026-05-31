@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/branch.dart';
+import '../../../core/models/branch_manager.dart';
+import '../../../core/services/branch_manager_service.dart';
 import '../../../core/services/branch_service.dart';
 import '../../../theme/app_colors.dart';
 
@@ -21,10 +23,14 @@ class EditOutletPage extends StatefulWidget {
 
 class _EditOutletPageState extends State<EditOutletPage> {
   final BranchService _service = BranchService();
+  final BranchManagerService _managerService = BranchManagerService();
   late final TextEditingController _outletNameController;
   late final TextEditingController _cityNameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
+  List<BranchManager> _managers = [];
+  BranchManager? _selectedManager;
+  bool _isLoadingManagers = true;
   bool _isLoading = false;
   bool _isLoadingData = false;
   Branch? _outlet;
@@ -40,6 +46,47 @@ class _EditOutletPageState extends State<EditOutletPage> {
     if (widget.outletId != null) {
       _loadOutletData();
     }
+    _loadManagers();
+  }
+
+  Future<void> _loadManagers() async {
+    try {
+      final managers = await _managerService.getAllBranchManagers();
+      if (!mounted) return;
+      setState(() {
+        _managers = managers;
+        _isLoadingManagers = false;
+      });
+      _syncSelectedManager();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingManagers = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load managers: ${e.toString()}'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  void _syncSelectedManager() {
+    final outletManagerId = _outlet?.managerId;
+    if (outletManagerId == null || _managers.isEmpty) return;
+    for (final manager in _managers) {
+      if (manager.profileId == outletManagerId || manager.id == outletManagerId) {
+        if (mounted) {
+          setState(() {
+            _selectedManager = manager;
+          });
+        } else {
+          _selectedManager = manager;
+        }
+        break;
+      }
+    }
   }
 
   Future<void> _loadOutletData() async {
@@ -53,6 +100,7 @@ class _EditOutletPageState extends State<EditOutletPage> {
         _addressController.text = outlet.location;
         _isLoadingData = false;
       });
+      _syncSelectedManager();
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingData = false);
@@ -99,13 +147,66 @@ class _EditOutletPageState extends State<EditOutletPage> {
       return;
     }
 
+    if (_selectedManager == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a branch manager'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedManager?.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selected manager is invalid'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedManager?.profileId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selected manager profile is missing'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
+      BranchManager? previousManager;
+      for (final manager in _managers) {
+        if (manager.profileId == _outlet?.managerId ||
+            manager.id == _outlet?.managerId) {
+          previousManager = manager;
+          break;
+        }
+      }
+
       await _service.updateBranch(
         id: widget.outletId!,
         name: outletName,
         location: address,
+        managerId: _selectedManager!.profileId,
+      );
+
+      if (previousManager?.id != null &&
+          previousManager!.id != _selectedManager!.id) {
+        await _managerService.updateBranchManager(
+          id: previousManager!.id!,
+          clearBranch: true,
+        );
+      }
+
+      await _managerService.updateBranchManager(
+        id: _selectedManager!.id!,
+        branchId: widget.outletId,
       );
 
       if (!mounted) return;
@@ -200,6 +301,10 @@ class _EditOutletPageState extends State<EditOutletPage> {
 
   @override
   Widget build(BuildContext context) {
+    final availableManagers = _managers
+        .where((m) => m.profileId != null)
+        .toList();
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -340,6 +445,17 @@ class _EditOutletPageState extends State<EditOutletPage> {
                   hintText: 'Address',
                 ),
 
+                const SizedBox(height: 12),
+
+                _ManagerDropdown(
+                  isLoading: _isLoadingManagers,
+                  managers: availableManagers,
+                  value: _selectedManager,
+                  onChanged: (value) {
+                    setState(() => _selectedManager = value);
+                  },
+                ),
+
                 const SizedBox(height: 24),
 
                 // Remove Outlet button
@@ -435,6 +551,74 @@ class _FilledField extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Branch manager dropdown field
+class _ManagerDropdown extends StatelessWidget {
+  const _ManagerDropdown({
+    required this.isLoading,
+    required this.managers,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool isLoading;
+  final List<BranchManager> managers;
+  final BranchManager? value;
+  final ValueChanged<BranchManager?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 45,
+      decoration: BoxDecoration(
+        color: AppColors.primary100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: isLoading
+          ? const Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          : DropdownButtonHideUnderline(
+              child: DropdownButton<BranchManager>(
+                value: value,
+                hint: const Text(
+                  'Select Branch Manager',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    fontFamily: 'Outfit',
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                isExpanded: true,
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColors.textTitle,
+                  size: 20,
+                ),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'Outfit',
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textTitle,
+                ),
+                items: managers.map((manager) {
+                  return DropdownMenuItem<BranchManager>(
+                    value: manager,
+                    child: Text(manager.displayName),
+                  );
+                }).toList(),
+                onChanged: managers.isEmpty ? null : onChanged,
+              ),
+            ),
     );
   }
 }

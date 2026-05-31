@@ -79,16 +79,43 @@ class _AddGDMPageState extends State<AddGDMPage> {
       return;
     }
 
+    if (_selectedOutlet == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an outlet'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedOutlet?.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selected outlet is invalid'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      await _service.createBranchManager(
+      final createdManager = await _service.createBranchManager(
         name: '$firstName $lastName',
         email: email,
         phone: phone.isNotEmpty ? phone : null,
         password: 'default123', // You might want to add a password field
         branchId: _selectedOutlet?.id,
       );
+
+      if (createdManager.profileId != null) {
+        await _branchService.updateBranch(
+          id: _selectedOutlet!.id!,
+          managerId: createdManager.profileId,
+        );
+      }
 
       if (!mounted) return;
 
